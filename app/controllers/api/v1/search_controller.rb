@@ -371,7 +371,16 @@ module Api
         @matching_accessions = @studies.map { |study| self.class.get_study_attribute(study, :accession) }
 
         logger.info "Final list of matching studies: #{@matching_accessions}"
-        @results = @studies.paginate(page: params[:page], per_page: Study.per_page)
+
+        # Only return 5 studies if global gene search, to mitigate performance
+        # issues related to expression filtering (SCP-4432)
+        if params[:genes].present?
+          per_page = 5
+        else
+          per_page = Study.per_page
+        end
+
+        @results = @studies.paginate(page: params[:page], per_page: per_page)
         render json: search_results_obj, status: 200
       end
 
