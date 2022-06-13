@@ -24,7 +24,9 @@ export default function StudyGeneExpressions({ study }) {
   let controlClusterParams = _clone(clusterParams)
   if (annotationList && !clusterParams.cluster) {
     // if the user hasn't specified anything yet, but we have the study defaults, use those
-    controlClusterParams = Object.assign(controlClusterParams, getDefaultClusterParams(annotationList))
+    controlClusterParams = Object.assign(
+      controlClusterParams, getDefaultClusterParams(annotationList, null, 10_000)
+    )
   }
 
   let studyRenderComponent

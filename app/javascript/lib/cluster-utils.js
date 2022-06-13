@@ -21,17 +21,19 @@ export const emptyDataParams = {
 
 export const UNSPECIFIED_ANNOTATION_NAME = '--Unspecified--'
 const GROUP_VIZ_THRESHOLD_MAX = 200
+const MAX_DEFAULT_SUBSAMPLE = 100_000
 
-/** takes the server response and returns subsample default subsample for the cluster */
-export function getDefaultSubsampleForCluster(annotationList, clusterName) {
+/** takes the server response and returns default subsample for the cluster */
+export function getDefaultSubsampleForCluster(annotationList, clusterName, max = MAX_DEFAULT_SUBSAMPLE) {
   const subsampleOptions = annotationList.subsample_thresholds[clusterName]
   if (subsampleOptions?.length) {
-    // find the max subsample less than or equal to 100000
-    const defaultSubsample = Math.max(...subsampleOptions.filter(opt => opt <= 100000))
-    // if it's 100000, that means the study has more than 100000 cells, and so the
-    // default is to show 100000.  otherwise we'll show all cells by default
-    if (defaultSubsample === 100000) {
-      return 100000
+    // find the max subsample less than or equal to max
+    const defaultSubsample = Math.max(...subsampleOptions.filter(opt => opt <= max))
+    // if it's max, that means the study has more than default max cells, and so the
+    // default is to show max default subsampling threshold.
+    // otherwise we'll show all cells by default
+    if (defaultSubsample === max) {
+      return max
     }
   }
   return 'all'
@@ -98,12 +100,12 @@ export function getAnnotationForIdentifier(identifier) {
 
 
 /** extracts default parameters from an annotationList of the type returned by the explore API */
-export function getDefaultClusterParams(annotationList, spatialGroups) {
+export function getDefaultClusterParams(annotationList, spatialGroups, maxSubsample = MAX_DEFAULT_SUBSAMPLE) {
   const defaultCluster = annotationList.default_cluster
   const clusterParams = {
     cluster: defaultCluster,
     annotation: annotationKeyProperties(annotationList.default_annotation),
-    subsample: getDefaultSubsampleForCluster(annotationList, annotationList.default_cluster),
+    subsample: getDefaultSubsampleForCluster(annotationList, annotationList.default_cluster, maxSubsample),
     spatialGroups: getDefaultSpatialGroupsForCluster(defaultCluster, spatialGroups)
   }
   return clusterParams
