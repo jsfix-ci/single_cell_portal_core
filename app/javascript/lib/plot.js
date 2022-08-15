@@ -341,7 +341,7 @@ PlotUtils.getPlotDimensions = function({
   horizontalPad=80,
   hasLabelLegend=false,
   hasTitle=false,
-  showRelatedGenesIdeogram=false,
+  showIdeogram=false,
   showViewOptionsControls=true
 }) {
   // Get width, and account for expanding "View Options" after page load
@@ -359,7 +359,7 @@ PlotUtils.getPlotDimensions = function({
   // Height of screen viewport, minus fixed-height elements above gallery
   let galleryHeight = $(window).height() - verticalPad
 
-  if (showRelatedGenesIdeogram) {
+  if (showIdeogram) {
     galleryHeight -= PlotUtils.ideogramHeight
   }
 

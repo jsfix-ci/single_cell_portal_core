@@ -2,9 +2,9 @@
  * @fileoverview Ideogram for related genes
  *
  * This code enhances single-gene search in the Study Overview page.  It is
- * called after searching for a gene, invoking functionality in Ideogram.js to
- * retrieve and plot related genes across the genome.  Users can then click a
- * related gene to trigger a search on that gene.  The intent is to improve
+ * called before searching for a gene, invoking functionality in Ideogram.js to
+ * retrieve and plot interesting genes across the genome.  Users can then click a
+ * gene to trigger a search on that gene.  The intent is to improve
  * discoverability for genes of biological interest.
  *
  * More context, a screenshot, and architecture diagram are available at:
@@ -22,35 +22,35 @@ import { logStudyGeneSearch } from '~/lib/search-metrics'
 /** Handle clicks on Ideogram annotations */
 function onClickAnnot(annot) {
   // Ideogram object; used to inspect ideogram state
-  const ideogram = this // eslint-disable-line
+   const ideogram = this // eslint-disable-line
 
   // Enable merge of related-genes log props into search log props
   // This helps profile the numerator of click-through-rate
   const otherProps = {}
   const props = getRelatedGenesAnalytics(ideogram)
   Object.entries(props).forEach(([key, value]) => {
-    otherProps[`relatedGenes:${key}`] = value
+    otherProps[`geneHints:${key}`] = value
   })
 
-  const trigger = 'click-related-genes'
+  const trigger = 'click-gene-hints'
   const speciesList = ideogram.SCP.speciesList
   logStudyGeneSearch([annot.name], trigger, speciesList, otherProps)
   ideogram.SCP.searchGenes([annot.name])
 }
 
 /**
- * Reports if current genome assembly has chromosome length data
- *
- * Enables handling for taxons that cannot be visualized in an ideogram.
- * Example edge case: axolotl study SCP499.
- */
+  * Reports if current genome assembly has chromosome length data
+  *
+  * Enables handling for taxons that cannot be visualized in an ideogram.
+  * Example edge case: axolotl study SCP499.
+  */
 function genomeHasChromosomes() {
   return window.ideogram.chromosomesArray.length > 0
 }
 
 /**
-* Move Ideogram within expression plot tabs, per UX recommendation
-*/
+ * Move Ideogram within expression plot tabs, per UX recommendation
+ */
 function putIdeogramInPlotTabs(ideoContainer, target) {
   const tabContent = document.querySelector(target)
   const ideoOuter = document.querySelector('#_ideogramOuterWrap')
@@ -63,17 +63,17 @@ function putIdeogramInPlotTabs(ideoContainer, target) {
 }
 
 /**
- * Displays Ideogram after getting gene search results in Study Overview
- */
-function showRelatedGenesIdeogram(target) { // eslint-disable-line
+  * Displays Ideogram after getting gene search results in Study Overview
+  */
+ function showGeneHintsIdeogram(target) { // eslint-disable-line
 
   if (!window.ideogram) {return}
 
   const ideoContainer =
-    document.querySelector('#related-genes-ideogram-container')
+     document.querySelector('#gene-hints-ideogram-container')
 
   if (!genomeHasChromosomes()) {
-    ideoContainer.classList = 'hidden-related-genes-ideogram'
+    ideoContainer.classList = 'hidden-gene-hints-ideogram'
     ideoContainer.innerHTML = ''
     return
   }
@@ -81,7 +81,7 @@ function showRelatedGenesIdeogram(target) { // eslint-disable-line
   putIdeogramInPlotTabs(ideoContainer, target)
 
   // Make Ideogram visible
-  ideoContainer.classList = 'show-related-genes-ideogram'
+  ideoContainer.classList = 'show-gene-hints-ideogram'
 }
 
 /** Refine analytics to use DSP-conventional names */
@@ -98,7 +98,7 @@ function conformAnalytics(props, ideogram) {
 /** Log hover over related genes ideogram tooltip */
 function onWillShowAnnotTooltip(annot) {
   // Ideogram object; used to inspect ideogram state
-  const ideogram = this // eslint-disable-line
+   const ideogram = this // eslint-disable-line
   let props = ideogram.getTooltipAnalytics(annot)
 
   // `props` is null if it is merely analytics noise.
@@ -107,7 +107,7 @@ function onWillShowAnnotTooltip(annot) {
   // technical artifact that is not worth analyzing.
   if (props) {
     props = conformAnalytics(props, ideogram)
-    log('ideogram:related-genes:tooltip', props)
+    log('ideogram:genes-hints:tooltip', props)
   }
 
   return annot
@@ -121,22 +121,22 @@ function getRelatedGenesAnalytics(ideogram) {
 }
 
 /**
- * Callback to report analytics to Mixpanel.
- * Helps profile denominator of click-through-rate
- */
+  * Callback to report analytics to Mixpanel.
+  * Helps profile denominator of click-through-rate
+  */
 function onPlotRelatedGenes() {
   // Ideogram object; used to inspect ideogram state
-  const ideogram = this // eslint-disable-line
+   const ideogram = this // eslint-disable-line
   const props = getRelatedGenesAnalytics(ideogram)
 
-  log('ideogram:related-genes', props)
+  log('ideogram:gene-hints', props)
 }
 
 /**
- * Initiates Ideogram for related genes
- *
- * This is only done in the context of single-gene search in Study Overview
- */
+  * Initiates Ideogram for related genes
+  *
+  * This is only done in the context of single-gene search in Study Overview
+  */
 export default function RelatedGenesIdeogram({
   gene, taxon, target, genesInScope, searchGenes, speciesList
 }) {
@@ -150,7 +150,7 @@ export default function RelatedGenesIdeogram({
 
   useEffect(() => {
     const ideoConfig = {
-      container: '#related-genes-ideogram-container',
+      container: '#gene-hints-ideogram-container',
       organism: taxon,
       chrWidth: 9,
       chrHeight: ideogramHeight - verticalPad,
@@ -164,11 +164,11 @@ export default function RelatedGenesIdeogram({
         // Handles edge case: when organism lacks chromosome-level assembly
         if (!genomeHasChromosomes()) {return}
         this.plotRelatedGenes(gene)
-        showRelatedGenesIdeogram(target)
+        showGeneHintsIdeogram(target)
       }
     }
     window.ideogram =
-      Ideogram.initRelatedGenes(ideoConfig, genesInScope)
+       Ideogram.initRelatedGenes(ideoConfig, genesInScope)
 
     // Extend ideogram with custom SCP function to search genes
     window.ideogram.SCP = { searchGenes, speciesList }
@@ -176,7 +176,7 @@ export default function RelatedGenesIdeogram({
 
   return (
     <div
-      id="related-genes-ideogram-container"
+      id="gene-hints-ideogram-container"
       className="hidden-related-genes-ideogram">
     </div>
   )
