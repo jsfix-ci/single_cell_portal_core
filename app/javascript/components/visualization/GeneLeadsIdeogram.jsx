@@ -1,14 +1,12 @@
 /**
- * @fileoverview Ideogram for related genes
+ * @fileoverview Ideogram for gene leads: features to consider searching
  *
- * This code enhances single-gene search in the Study Overview page.  It is
+ * This code primes gene search in the Study Overview page.  It is
  * called before searching for a gene, invoking functionality in Ideogram.js to
  * retrieve and plot interesting genes across the genome.  Users can then click a
  * gene to trigger a search on that gene.  The intent is to improve
  * discoverability for genes of biological interest.
  *
- * More context, a screenshot, and architecture diagram are available at:
- * https://github.com/broadinstitute/single_cell_portal_core/pull/735
  */
 
 import React, { useEffect } from 'react'
@@ -32,7 +30,7 @@ function onClickAnnot(annot) {
   //   otherProps[`geneHints:${key}`] = value
   // })
 
-  const trigger = 'click-gene-hints'
+  const trigger = 'click-gene-leads'
   const speciesList = ideogram.SCP.speciesList
   logStudyGeneSearch([annot.name], trigger, speciesList, otherProps)
   ideogram.SCP.searchGenes([annot.name])
@@ -65,15 +63,15 @@ function putIdeogramInPlotTabs(ideoContainer, target) {
 /**
   * Displays Ideogram after getting gene search results in Study Overview
   */
- function showGeneHintsIdeogram(target) { // eslint-disable-line
+ function showGeneLeadsIdeogram(target) { // eslint-disable-line
 
   if (!window.ideogram) {return}
 
   const ideoContainer =
-     document.querySelector('#gene-hints-ideogram-container')
+     document.querySelector('#gene-leads-ideogram-container')
 
   if (!genomeHasChromosomes()) {
-    ideoContainer.classList = 'hidden-gene-hints-ideogram'
+    ideoContainer.classList = 'hidden-gene-leads-ideogram'
     ideoContainer.innerHTML = ''
     return
   }
@@ -81,7 +79,7 @@ function putIdeogramInPlotTabs(ideoContainer, target) {
   putIdeogramInPlotTabs(ideoContainer, target)
 
   // Make Ideogram visible
-  ideoContainer.classList = 'show-gene-hints-ideogram'
+  ideoContainer.classList = 'show-gene-leads-ideogram'
 }
 
 /** Refine analytics to use DSP-conventional names */
@@ -107,7 +105,7 @@ function onWillShowAnnotTooltip(annot) {
   // technical artifact that is not worth analyzing.
   if (props) {
     props = conformAnalytics(props, ideogram)
-    log('ideogram:genes-hints:tooltip', props)
+    log('ideogram:gene-leads:tooltip', props)
   }
 
   return annot
@@ -129,65 +127,8 @@ function onPlotRelatedGenes() {
    const ideogram = this // eslint-disable-line
   const props = getRelatedGenesAnalytics(ideogram)
 
-  log('ideogram:gene-hints', props)
+  log('ideogram:gene-leads', props)
 }
-
-// /**
-//  * For given gene, finds and draws interacting genes and paralogs
-//  *
-//  * @param geneSymbol {String} Gene symbol, e.g. RAD51
-//  */
-//  async function plotRelatedGenes(geneSymbol=null) {
-
-//   const ideo = this;
-
-//   ideo.clearAnnotLabels();
-//   const legend = document.querySelector('#_ideogramLegend');
-//   if (legend) legend.remove();
-
-//   if (!geneSymbol) {
-//     return plotGeneHints(ideo);
-//   }
-
-//   ideo.config = setRelatedDecorPad(ideo.config);
-
-//   initAnnotDescriptions(ideo, `Related genes for ${geneSymbol}`);
-
-//   const ideoSel = ideo.selector;
-//   const annotSel = ideoSel + ' .annot';
-//   document.querySelectorAll(annotSel).forEach(el => el.remove());
-
-//   ideo.startHideAnnotTooltipTimeout();
-
-//   // Refine style
-//   document.querySelectorAll('.chromosome').forEach(chromosome => {
-//     chromosome.style.cursor = '';
-//   });
-
-//   adjustPlaceAndVisibility(ideo);
-
-//   ideo.relatedAnnots = [];
-
-//   // Fetch positon of searched gene
-//   const annot = await processSearchedGene(geneSymbol, ideo);
-
-//   if (typeof annot === 'undefined') throwGeneNotFound(geneSymbol, ideo);
-
-//   ideo.config.legend = relatedLegend;
-//   writeLegend(ideo);
-//   moveLegend();
-
-//   await Promise.all([
-//     processInteractions(annot, ideo),
-//     processParalogs(annot, ideo)
-//   ]);
-
-//   ideo.time.rg.total = timeDiff(ideo.time.rg.t0);
-
-//   analyzeRelatedGenes(ideo);
-
-//   if (ideo.onPlotRelatedGenesCallback) ideo.onPlotRelatedGenesCallback();
-// }
 
 /**
   * Initiates Ideogram for related genes
@@ -207,7 +148,7 @@ export default function RelatedGenesIdeogram({
 
   useEffect(() => {
     const ideoConfig = {
-      container: '#gene-hints-ideogram-container',
+      container: '#gene-leads-ideogram-container',
       organism: taxon,
       chrWidth: 9,
       chrMargin: 15,
@@ -222,12 +163,11 @@ export default function RelatedGenesIdeogram({
       showGeneStructureInTooltip: true,
       showParalogNeighborhoods: taxon === 'Homo sapiens', // Works around bug in Ideogram 1.37.0, remove upon upgrade
       onLoad() {
-        console.log('in GeneHints onload')
         // Handles edge case: when organism lacks chromosome-level assembly
         if (!genomeHasChromosomes()) {return}
         // debugger
         this.plotRelatedGenes(gene)
-        showGeneHintsIdeogram(target)
+        showGeneLeadsIdeogram(target)
       }
     }
     window.ideogram =
@@ -239,7 +179,7 @@ export default function RelatedGenesIdeogram({
 
   return (
     <div
-      id="gene-hints-ideogram-container"
+      id="gene-leads-ideogram-container"
       className="hidden-related-genes-ideogram">
     </div>
   )

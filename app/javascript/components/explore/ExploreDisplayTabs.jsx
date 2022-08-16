@@ -26,7 +26,7 @@ import GenomeView from './GenomeView'
 import ImageTab from './ImageTab'
 import { getAnnotationValues, getDefaultSpatialGroupsForCluster, getMatchedAnnotation } from '~/lib/cluster-utils'
 import RelatedGenesIdeogram from '~/components/visualization/RelatedGenesIdeogram'
-import GeneHintsIdeogram from '~/components/visualization/GeneHintsIdeogram'
+import GeneLeadsIdeogram from '~/components/visualization/GeneLeadsIdeogram'
 import InferCNVIdeogram from '~/components/visualization/InferCNVIdeogram'
 import useResizeEffect from '~/hooks/useResizeEffect'
 import LoadingSpinner from '~/lib/LoadingSpinner'
@@ -142,7 +142,7 @@ export default function ExploreDisplayTabs({
     shownTab = enabledTabs[0]
   }
   let showRelatedGenesIdeogram = false
-  let showGeneHintsIdeogram = false
+  let showGeneLeadsIdeogram = false
   let currentTaxon = null
   let searchedGene = null
   if (
@@ -154,14 +154,14 @@ export default function ExploreDisplayTabs({
     searchedGene = exploreParams.genes[0]
 
     if (exploreParams.genes.length === 0) {
-      showGeneHintsIdeogram = true
+      showGeneLeadsIdeogram = true
     }
 
     if (exploreParams.genes.length === 1) {
       showRelatedGenesIdeogram = true
     }
   }
-  const showIdeogram = showRelatedGenesIdeogram || showGeneHintsIdeogram
+  const showIdeogram = showRelatedGenesIdeogram || showGeneLeadsIdeogram
   console.log('exploreInfo?.taxonNames.length')
   console.log(exploreInfo?.taxonNames.length)
   console.log('!isGeneList')
@@ -311,8 +311,8 @@ export default function ExploreDisplayTabs({
       <div className="row explore-tab-content">
         <div className={showViewOptionsControls ? 'col-md-10' : 'col-md-12'}>
           <div className="explore-plot-tab-content row">
-            { showGeneHintsIdeogram &&
-              <GeneHintsIdeogram
+            { showGeneLeadsIdeogram &&
+              <GeneLeadsIdeogram
                 gene={searchedGene}
                 taxon={currentTaxon}
                 target={`.${plotContainerClass}`}
