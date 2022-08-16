@@ -27,10 +27,10 @@ function onClickAnnot(annot) {
   // Enable merge of related-genes log props into search log props
   // This helps profile the numerator of click-through-rate
   const otherProps = {}
-  const props = getRelatedGenesAnalytics(ideogram)
-  Object.entries(props).forEach(([key, value]) => {
-    otherProps[`geneHints:${key}`] = value
-  })
+  // const props = getRelatedGenesAnalytics(ideogram)
+  // Object.entries(props).forEach(([key, value]) => {
+  //   otherProps[`geneHints:${key}`] = value
+  // })
 
   const trigger = 'click-gene-hints'
   const speciesList = ideogram.SCP.speciesList
@@ -99,7 +99,7 @@ function conformAnalytics(props, ideogram) {
 function onWillShowAnnotTooltip(annot) {
   // Ideogram object; used to inspect ideogram state
    const ideogram = this // eslint-disable-line
-  let props = ideogram.getTooltipAnalytics(annot)
+  let props = {} // let props = ideogram.getTooltipAnalytics(annot)
 
   // `props` is null if it is merely analytics noise.
   // Accounts for quick moves from label to annot, or away then immediately
@@ -132,6 +132,63 @@ function onPlotRelatedGenes() {
   log('ideogram:gene-hints', props)
 }
 
+// /**
+//  * For given gene, finds and draws interacting genes and paralogs
+//  *
+//  * @param geneSymbol {String} Gene symbol, e.g. RAD51
+//  */
+//  async function plotRelatedGenes(geneSymbol=null) {
+
+//   const ideo = this;
+
+//   ideo.clearAnnotLabels();
+//   const legend = document.querySelector('#_ideogramLegend');
+//   if (legend) legend.remove();
+
+//   if (!geneSymbol) {
+//     return plotGeneHints(ideo);
+//   }
+
+//   ideo.config = setRelatedDecorPad(ideo.config);
+
+//   initAnnotDescriptions(ideo, `Related genes for ${geneSymbol}`);
+
+//   const ideoSel = ideo.selector;
+//   const annotSel = ideoSel + ' .annot';
+//   document.querySelectorAll(annotSel).forEach(el => el.remove());
+
+//   ideo.startHideAnnotTooltipTimeout();
+
+//   // Refine style
+//   document.querySelectorAll('.chromosome').forEach(chromosome => {
+//     chromosome.style.cursor = '';
+//   });
+
+//   adjustPlaceAndVisibility(ideo);
+
+//   ideo.relatedAnnots = [];
+
+//   // Fetch positon of searched gene
+//   const annot = await processSearchedGene(geneSymbol, ideo);
+
+//   if (typeof annot === 'undefined') throwGeneNotFound(geneSymbol, ideo);
+
+//   ideo.config.legend = relatedLegend;
+//   writeLegend(ideo);
+//   moveLegend();
+
+//   await Promise.all([
+//     processInteractions(annot, ideo),
+//     processParalogs(annot, ideo)
+//   ]);
+
+//   ideo.time.rg.total = timeDiff(ideo.time.rg.t0);
+
+//   analyzeRelatedGenes(ideo);
+
+//   if (ideo.onPlotRelatedGenesCallback) ideo.onPlotRelatedGenesCallback();
+// }
+
 /**
   * Initiates Ideogram for related genes
   *
@@ -153,22 +210,28 @@ export default function RelatedGenesIdeogram({
       container: '#gene-hints-ideogram-container',
       organism: taxon,
       chrWidth: 9,
+      chrMargin: 15,
       chrHeight: ideogramHeight - verticalPad,
       chrLabelSize: 12,
       annotationHeight: 7,
+      // annotationsPath: 'https://cdn.jsdelivr.net/npm/ideogram@1.37.0/dist/data/cache/homo-sapiens-top-genes.tsv',
+      annotationsPath: 'https://storage.googleapis.com/download/storage/v1/b/broad-singlecellportal-public/o/test%2Fgene_highlights_v5.tsv?alt=media',
       onClickAnnot,
       onPlotRelatedGenes,
       onWillShowAnnotTooltip,
+      showGeneStructureInTooltip: true,
       showParalogNeighborhoods: taxon === 'Homo sapiens', // Works around bug in Ideogram 1.37.0, remove upon upgrade
       onLoad() {
+        console.log('in GeneHints onload')
         // Handles edge case: when organism lacks chromosome-level assembly
         if (!genomeHasChromosomes()) {return}
+        // debugger
         this.plotRelatedGenes(gene)
         showGeneHintsIdeogram(target)
       }
     }
     window.ideogram =
-       Ideogram.initRelatedGenes(ideoConfig, genesInScope)
+       Ideogram.initGeneHints(ideoConfig, genesInScope)
 
     // Extend ideogram with custom SCP function to search genes
     window.ideogram.SCP = { searchGenes, speciesList }

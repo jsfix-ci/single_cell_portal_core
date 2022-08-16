@@ -162,8 +162,8 @@ export default function ExploreDisplayTabs({
     }
   }
   const showIdeogram = showRelatedGenesIdeogram || showGeneHintsIdeogram
-  console.log('exploreInfo.taxonNames.length')
-  console.log(exploreInfo.taxonNames.length)
+  console.log('exploreInfo?.taxonNames.length')
+  console.log(exploreInfo?.taxonNames.length)
   console.log('!isGeneList')
   console.log(!isGeneList)
   console.log(exploreInfo)
