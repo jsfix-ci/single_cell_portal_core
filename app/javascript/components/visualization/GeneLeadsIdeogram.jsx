@@ -134,6 +134,20 @@ function onPlotRelatedGenes() {
   log('ideogram:gene-leads', props)
 }
 
+// TODO (pre-GA): Simplify Ideogram legend API to handle CSS, etc.
+const legendHeaderStyle =
+  `font-size: 14px; font-weight: bold; font-color: #333;`
+const legend = [{
+  name: `
+    <div style="position: relative; left: 30px;">
+      <div style="${legendHeaderStyle}">Gene leads</div>
+      <i>Click gene to search</i>
+    </div>
+  `,
+  nameHeight: 30,
+  rows: []
+}]
+
 /**
   * Initiates Ideogram for related genes
   *
@@ -161,6 +175,7 @@ export default function RelatedGenesIdeogram({
       container: '#gene-leads-ideogram-container',
       organism: taxon,
       chrWidth: 9,
+      legend,
       chrMargin: 15,
       chrHeight: ideogramHeight - verticalPad,
       chrLabelSize: 12,
