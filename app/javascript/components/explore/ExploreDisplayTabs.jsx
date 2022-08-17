@@ -153,7 +153,9 @@ export default function ExploreDisplayTabs({
     currentTaxon = exploreInfo.taxonNames[0]
     searchedGene = exploreParams.genes[0]
 
-    if (exploreParams.genes.length === 0) {
+    const flags = getFeatureFlagsWithDefaults()
+
+    if (exploreParams.genes.length === 0 && flags.gene_leads_ideogram) {
       showGeneLeadsIdeogram = true
     }
 
@@ -162,13 +164,6 @@ export default function ExploreDisplayTabs({
     }
   }
   const showIdeogram = showRelatedGenesIdeogram || showGeneLeadsIdeogram
-  console.log('exploreInfo?.taxonNames.length')
-  console.log(exploreInfo?.taxonNames.length)
-  console.log('!isGeneList')
-  console.log(!isGeneList)
-  console.log(exploreInfo)
-  console.log('showIdeogram')
-  console.log(showIdeogram)
 
   const isCorrelatedScatter = enabledTabs.includes('correlatedScatter')
 
