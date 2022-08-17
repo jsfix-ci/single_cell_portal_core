@@ -159,7 +159,6 @@ export default function RelatedGenesIdeogram({
       onClickAnnot,
       onPlotRelatedGenes,
       onWillShowAnnotTooltip,
-      showGeneStructureInTooltip: true,
       showParalogNeighborhoods: taxon === 'Homo sapiens', // Works around bug in Ideogram 1.37.0, remove upon upgrade
       onLoad() {
         // Handles edge case: when organism lacks chromosome-level assembly
