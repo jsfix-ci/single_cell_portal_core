@@ -7,6 +7,10 @@
  * gene to trigger a search on that gene.  The intent is to improve
  * discoverability for genes of biological interest.
  *
+ * TODO (pre-GA):
+ * - Consolidate redundant code between RelatedGenesIdeogram and GeneLeadsIdeogram
+ * - Refine analytics for related genes and gene leads ideograms
+ * - Expose gene leads API via Ideogram.js so SCP UI can handle color, etc.
  */
 
 import React, { useEffect } from 'react'
@@ -161,7 +165,6 @@ export default function RelatedGenesIdeogram({
       chrHeight: ideogramHeight - verticalPad,
       chrLabelSize: 12,
       annotationHeight: 7,
-      // annotationsPath: 'https://cdn.jsdelivr.net/npm/ideogram@1.37.0/dist/data/cache/homo-sapiens-top-genes.tsv',
       annotationsPath,
       onClickAnnot,
       onPlotRelatedGenes,
@@ -171,7 +174,6 @@ export default function RelatedGenesIdeogram({
       onLoad() {
         // Handles edge case: when organism lacks chromosome-level assembly
         if (!genomeHasChromosomes()) {return}
-        // debugger
         this.plotRelatedGenes(gene)
         showGeneLeadsIdeogram(target)
       }
