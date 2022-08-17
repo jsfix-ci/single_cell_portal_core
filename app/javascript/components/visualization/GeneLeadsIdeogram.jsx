@@ -11,6 +11,7 @@
  * - Consolidate redundant code between RelatedGenesIdeogram and GeneLeadsIdeogram
  * - Refine analytics for related genes and gene leads ideograms
  * - Expose gene leads API via Ideogram.js so SCP UI can handle color, etc.
+ * - Refine Ideogram width handling to account for viewport resizing
  */
 
 import React, { useEffect } from 'react'
@@ -134,6 +135,20 @@ function onPlotRelatedGenes() {
   log('ideogram:gene-leads', props)
 }
 
+// TODO (pre-GA): Simplify Ideogram legend API to handle CSS, etc.
+const legendHeaderStyle =
+  `font-size: 14px; font-weight: bold; font-color: #333;`
+const legend = [{
+  name: `
+    <div style="position: relative; left: 30px;">
+      <div style="${legendHeaderStyle}">Gene leads</div>
+      <i>Click gene to search</i>
+    </div>
+  `,
+  nameHeight: 30,
+  rows: []
+}]
+
 /**
   * Initiates Ideogram for related genes
   *
@@ -152,6 +167,8 @@ export default function RelatedGenesIdeogram({
 
   const origin = 'https://storage.googleapis.com'
   const bucket = 'broad-singlecellportal-public'
+
+  // TODO (pre-GA): Decide file path; parameterize clustering, annotation
   const annotFileName = 'gene_leads_All_Cells_UMAP--General_Celltype_v2.tsv'
   const filePath = `test%2F${annotFileName}`
   const annotationsPath = `${origin}/download/storage/v1/b/${bucket}/o/${filePath}?alt=media`
@@ -161,6 +178,7 @@ export default function RelatedGenesIdeogram({
       container: '#gene-leads-ideogram-container',
       organism: taxon,
       chrWidth: 9,
+      legend,
       chrMargin: 15,
       chrHeight: ideogramHeight - verticalPad,
       chrLabelSize: 12,
