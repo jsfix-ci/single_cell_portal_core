@@ -146,6 +146,12 @@ export default function RelatedGenesIdeogram({
 
   const verticalPad = 40 // Total top and bottom padding
 
+  const origin = 'https://storage.googleapis.com'
+  const bucket = 'broad-singlecellportal-public'
+  const annotFileName = 'gene_leads_All_Cells_UMAP--General_Celltype_v2.tsv'
+  const filePath = `test%2F${annotFileName}`
+  const annotationsPath = `${origin}/download/storage/v1/b/${bucket}/o/${filePath}?alt=media`
+
   useEffect(() => {
     const ideoConfig = {
       container: '#gene-leads-ideogram-container',
@@ -156,7 +162,7 @@ export default function RelatedGenesIdeogram({
       chrLabelSize: 12,
       annotationHeight: 7,
       // annotationsPath: 'https://cdn.jsdelivr.net/npm/ideogram@1.37.0/dist/data/cache/homo-sapiens-top-genes.tsv',
-      annotationsPath: 'https://storage.googleapis.com/download/storage/v1/b/broad-singlecellportal-public/o/test%2Fgene_highlights_v5.tsv?alt=media',
+      annotationsPath,
       onClickAnnot,
       onPlotRelatedGenes,
       onWillShowAnnotTooltip,
