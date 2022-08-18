@@ -23,7 +23,7 @@ const CACHE_PERF_PARAMS = {
 const BASIC_DIMENSION_PROPS = {
   isMultiRow: false,
   isTwoColumn: false,
-  showRelatedGenesIdeogram: false,
+  showIdeogram: false,
   showViewOptionsControls: true
 }
 

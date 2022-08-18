@@ -80,7 +80,7 @@ export default function ImageTab({
                     isMultiRow,
                     isTwoColumn: true,
                     hasTitle: true,
-                    showRelatedGenesIdeogram: false
+                    showIdeogram: false
                   })}
                   isCellSelecting={isCellSelecting}
                   plotPointsSelected={plotPointsSelected}

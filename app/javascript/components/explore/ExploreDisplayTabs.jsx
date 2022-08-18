@@ -26,6 +26,7 @@ import GenomeView from './GenomeView'
 import ImageTab from './ImageTab'
 import { getAnnotationValues, getDefaultSpatialGroupsForCluster, getMatchedAnnotation } from '~/lib/cluster-utils'
 import RelatedGenesIdeogram from '~/components/visualization/RelatedGenesIdeogram'
+import GeneLeadsIdeogram from '~/components/visualization/GeneLeadsIdeogram'
 import InferCNVIdeogram from '~/components/visualization/InferCNVIdeogram'
 import useResizeEffect from '~/hooks/useResizeEffect'
 import LoadingSpinner from '~/lib/LoadingSpinner'
@@ -141,18 +142,28 @@ export default function ExploreDisplayTabs({
     shownTab = enabledTabs[0]
   }
   let showRelatedGenesIdeogram = false
+  let showGeneLeadsIdeogram = false
   let currentTaxon = null
   let searchedGene = null
   if (
     exploreInfo &&
     exploreInfo.taxonNames.length === 1 &&
-    exploreParams.genes.length === 1 &&
     !isGeneList
   ) {
-    showRelatedGenesIdeogram = true
     currentTaxon = exploreInfo.taxonNames[0]
     searchedGene = exploreParams.genes[0]
+
+    const flags = getFeatureFlagsWithDefaults()
+
+    if (exploreParams.genes.length === 0 && flags.gene_leads_ideogram) {
+      showGeneLeadsIdeogram = true
+    }
+
+    if (exploreParams.genes.length === 1) {
+      showRelatedGenesIdeogram = true
+    }
   }
+  const showIdeogram = showRelatedGenesIdeogram || showGeneLeadsIdeogram
 
   const isCorrelatedScatter = enabledTabs.includes('correlatedScatter')
 
@@ -295,6 +306,16 @@ export default function ExploreDisplayTabs({
       <div className="row explore-tab-content">
         <div className={showViewOptionsControls ? 'col-md-10' : 'col-md-12'}>
           <div className="explore-plot-tab-content row">
+            { showGeneLeadsIdeogram &&
+              <GeneLeadsIdeogram
+                gene={searchedGene}
+                taxon={currentTaxon}
+                target={`.${plotContainerClass}`}
+                genesInScope={exploreInfo.uniqueGenes}
+                searchGenes={searchGenes}
+                speciesList={exploreInfo.taxonNames}
+              />
+            }
             { showRelatedGenesIdeogram &&
               <RelatedGenesIdeogram
                 gene={searchedGene}
@@ -321,7 +342,7 @@ export default function ExploreDisplayTabs({
                   dimensionProps={{
                     numColumns: 1,
                     numRows: exploreParams?.spatialGroups.length ? 2 : 1,
-                    showRelatedGenesIdeogram,
+                    showIdeogram,
                     showViewOptionsControls
                   }}
                   isCellSelecting={isCellSelecting}
@@ -362,7 +383,7 @@ export default function ExploreDisplayTabs({
                     isCellSelecting,
                     isCorrelatedScatter,
                     plotPointsSelected,
-                    showRelatedGenesIdeogram,
+                    showIdeogram,
                     showViewOptionsControls,
                     scatterColor: exploreParamsWithDefaults.scatterColor,
                     countsByLabel,
@@ -377,7 +398,7 @@ export default function ExploreDisplayTabs({
                   studyAccession={studyAccession}
                   updateDistributionPlot={distributionPlot => updateExploreParams({ distributionPlot }, false)}
                   dimensions={getPlotDimensions({
-                    showRelatedGenesIdeogram, showViewOptionsControls
+                    showIdeogram, showViewOptionsControls
                   })}
                   {...exploreParams}/>
               </div>

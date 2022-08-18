@@ -1,8 +1,8 @@
-#related-genes-ideogram-container {
+#related-genes-ideogram-container, #gene-leads-ideogram-container {
   z-index: 1000;
   background: #FFF;
 
-  &.hidden-related-genes-ideogram {
+  &.hidden-related-genes-ideogram, &.hidden-gene-leads-ideogram {
     visibility: hidden;
 
     #_ideogramMiddleWrap {
@@ -10,7 +10,7 @@
     }
   }
 
-  &.show-related-genes-ideogram {
+  &.show-related-genes-ideogram, &.show-gene-leads-ideogram {
 
     visibility: visible;
     position: static !important;
