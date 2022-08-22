@@ -112,8 +112,16 @@ function onWillShowAnnotTooltip(annot) {
     props = conformAnalytics(props, ideogram)
     log('ideogram:gene-leads:tooltip', props)
   }
+  console.log('annot')
+  console.log(annot)
 
   return annot
+}
+
+function onLoadAnnots() {
+  console.log('in onLoadAnnots, this:')
+  console.log(this)
+  window.olaideo = this
 }
 
 /** Get summary of related-genes ideogram that was just loaded or clicked */
@@ -128,9 +136,33 @@ function getRelatedGenesAnalytics(ideogram) {
   * Helps profile denominator of click-through-rate
   */
 function onPlotRelatedGenes() {
+  console.log('in onPlotRelatedGenes')
   // Ideogram object; used to inspect ideogram state
-   const ideogram = this // eslint-disable-line
+  const ideogram = this // eslint-disable-line
   const props = getRelatedGenesAnalytics(ideogram)
+
+  // if (!ideo || 'annotDescriptions' in ideo) return;
+
+  ideogram.annotDescriptions = { annots: {} }
+
+  ideogram.flattenAnnots().map(annot => {
+    let description = []
+    if ('significance' in annot && annot.significance !== 'n/a') {
+      description.push(annot.significance)
+    }
+    if ('citations' in annot && annot.citations !== undefined) {
+      description.push(annot.citations)
+    }
+    description = description.join('<br/><br/>')
+    ideogram.annotDescriptions.annots[annot.name] = {
+      description,
+      name: annot.fullName
+    }
+  })
+
+  // adjustPlaceAndVisibility(ideo)
+  // moveLegend()
+  ideogram.fillAnnotLabels([])
 
   log('ideogram:gene-leads', props)
 }
@@ -169,7 +201,7 @@ export default function RelatedGenesIdeogram({
   const bucket = 'broad-singlecellportal-public'
 
   // TODO (pre-GA): Decide file path; parameterize clustering, annotation
-  const annotFileName = 'gene_leads_All_Cells_UMAP--General_Celltype_v3.tsv'
+  const annotFileName = 'gene_leads_All_Cells_UMAP--General_Celltype_v4.tsv'
   const filePath = `test%2F${annotFileName}`
   const annotationsPath = `${origin}/download/storage/v1/b/${bucket}/o/${filePath}?alt=media`
 
@@ -187,6 +219,7 @@ export default function RelatedGenesIdeogram({
       onClickAnnot,
       onPlotRelatedGenes,
       onWillShowAnnotTooltip,
+      onLoadAnnots,
       showGeneStructureInTooltip: true,
       showParalogNeighborhoods: taxon === 'Homo sapiens', // Works around bug in Ideogram 1.37.0, remove upon upgrade
       onLoad() {
