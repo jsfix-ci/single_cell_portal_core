@@ -60,6 +60,19 @@ function LegendEntry({
 
   // clicking the label will either hide the trace, or pop up a color picker
   const entryClickFunction = showColorControls ? () => setShowColorPicker(true) : toggleSelection
+  // clicking the label will either hide the trace, or pop up a color picker
+
+  let scatterHoverHandle
+  let scatterHoverId
+  // do not trigger `setActiveTraceLabel()` immediately to prevent triggers on scroll
+  const scatterHoverHandler = (label, currentSelectCheck) => {
+    clearTimeout(scatterHoverHandle)
+    scatterHoverHandle = setTimeout(() => {
+      if (scatterHoverHandle && currentSelectCheck()) {
+        setActiveTraceLabel(label)
+      }
+    }, 10000)
+  }
   return (
     <>
       <div
@@ -67,9 +80,19 @@ function LegendEntry({
         role="button"
         onClick={entryClickFunction}
         onMouseEnter={() => {
-          setActiveTraceLabel(label)
+          scatterHoverId = label
+          scatterHoverHandler(
+            label,
+            () => label === scatterHoverId
+          )
         }}
-        onMouseLeave={() => setActiveTraceLabel(null)}
+        onMouseLeave={() => {
+          scatterHoverId=''
+          scatterHoverHandler(
+            null,
+            () => '' === scatterHoverId
+          )
+        }}
       >
         <div className="scatter-legend-icon" style={iconStyle}>
           { showColorControls && <FontAwesomeIcon icon={faPalette} title="Change the color for this label"/> }
