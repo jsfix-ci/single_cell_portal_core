@@ -60,7 +60,6 @@ function LegendEntry({
 
   // clicking the label will either hide the trace, or pop up a color picker
   const entryClickFunction = showColorControls ? () => setShowColorPicker(true) : toggleSelection
-  // clicking the label will either hide the trace, or pop up a color picker
 
   let scatterHoverHandle
   let scatterHoverId
