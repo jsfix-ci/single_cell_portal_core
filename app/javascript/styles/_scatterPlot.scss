@@ -21,6 +21,8 @@
 
 .scatter-legend-head {
   margin: 5px 10px 10px 10px;
+  display: flex;
+  flex-direction: column;
 }
 
 .scatter-legend-name {
@@ -97,4 +99,33 @@
   .scatter-legend-row {
     opacity: 1;
   }
+}
+
+.cluster-external-link-container {
+  padding-bottom: 6px;
+  margin-bottom: 8px;
+  border-bottom: 1px solid #CCC;
+}
+
+.no-border {
+  border-style: hidden;
+  outline: none;
+}
+
+.legend-search-icon {
+  border-style: hidden;
+  color: $action-color;
+  padding: 5px 5px 5px 5px;
+}
+
+.legend-search {
+  display: flex;
+  align-items: center;
+  border-radius: 10px;
+  border: 1px solid $action-color;
+  margin-top: 5px;
+  margin-bottom: 5px;
+  font-weight: 500;
+  height: 38px;
+  width: 100%;
 }

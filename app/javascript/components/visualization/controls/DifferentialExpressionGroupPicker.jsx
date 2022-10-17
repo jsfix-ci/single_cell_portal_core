@@ -101,7 +101,7 @@ export default function DifferentialExpressionGroupPicker({
     const deFileName = deOption[1]
 
     const basePath = '_scp_internal/differential_expression/'
-    const deFilePath = `${basePath}${deFileName}`.replaceAll('/', '%2F')
+    const deFilePath = basePath + deFileName
 
     const deGenes = await fetchDeGenes(bucketId, deFilePath)
 

@@ -114,6 +114,29 @@ class HcaAzulClientTest < ActiveSupport::TestCase
     assert_equal 1, projects.size
   end
 
+  test 'should similate OR logic by splitting project queries' do
+    # TODO: convert other tests to use mocks to avoid Azul instability/lack of idempotency due to changing data
+    hiv_json = File.open(Rails.root.join('test/test_data/azul/disease_hiv.json')).read
+    disease_response = JSON.parse(hiv_json).with_indifferent_access
+    homo_sapiens_json = File.open(Rails.root.join('test/test_data/azul/species_homo_sapiens.json')).read
+    species_response = JSON.parse(homo_sapiens_json).with_indifferent_access
+    mock = Minitest::Mock.new
+    mock.expect(:code, 200)
+    mock.expect(:body, species_response) # body is called twice in ApiHelpers#handle_response
+    mock.expect(:body, species_response)
+    mock.expect(:code, 200)
+    mock.expect(:body, disease_response)
+    mock.expect(:body, disease_response)
+    RestClient::Request.stub :execute, mock do
+      # NOTE: :size here means _per facet_, not total
+      projects = @hca_azul_client.projects_by_facet(query: @query_json, size: 1)
+      assert_equal 2, projects['hits'].size
+      assert_equal %w[0fd8f918-62d6-4b8b-ac35-4c53dd601f71 53c53cd4-8127-4e12-bc7f-8fe1610a715c],
+                   projects['project_ids'].sort
+      mock.verify
+    end
+  end
+
   test 'should get one project' do
     skip_if_api_down
     project = @hca_azul_client.project(@project_id)
@@ -214,6 +237,20 @@ class HcaAzulClientTest < ActiveSupport::TestCase
       query.each { |facet| facet.delete(:db_facet) }
       assert_equal expected_facets, query
     end
+  end
+
+  test 'should ignore common/stop words when creating queries' do
+    ignored_terms = HcaAzulClient::IGNORED_WORDS.sample(5)
+    facets = @hca_azul_client.format_facet_query_from_keyword(ignored_terms)
+    assert_empty facets
+  end
+
+  test 'should filter common/stop words from term lists' do
+    ignored_terms = HcaAzulClient::IGNORED_WORDS.sample(5)
+    assert_empty @hca_azul_client.filter_term_list(ignored_terms)
+    assert_empty @hca_azul_client.filter_term_list(ignored_terms.map(&:capitalize)) # case sensitivity
+    good_terms = %w[cancer brain human]
+    assert_equal good_terms, @hca_azul_client.filter_term_list(good_terms)
   end
 
   test 'should merge query objects' do

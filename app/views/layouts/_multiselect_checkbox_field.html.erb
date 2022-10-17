@@ -1,0 +1,10 @@
+<ul class="multi-checkbox">
+  <% options.each do |annotation_name| %>
+    <li>
+      <%= form.check_box :override_viz_limit_annotations, {
+        multiple: true, checked: overrides.include?(annotation_name)
+      }, annotation_name, nil %>
+      <%= annotation_name %>
+    </li>
+  <% end %>
+</ul>

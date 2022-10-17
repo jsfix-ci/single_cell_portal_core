@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-THIS_DIR="$(cd "$(dirname "$0")"; pwd)"
+THIS_DIR="$(cd "$(dirname -- "$0")"; pwd)"
 
 # common libraries
 . $THIS_DIR/bash_utils.sh
@@ -80,9 +80,10 @@ function main {
 		    sleep 15
 		    if [[ $(get_http_status_code $PORTAL_HOMEPAGE) = "200" ]]; then echo "DEBUG: hooray, got a 200 back from $PORTAL_HOMEPAGE";break 2; fi
     done
-    if [[ $(get_http_status_code $PORTAL_HOMEPAGE) != "200" ]] ; then exit_with_error_message "Portal still not available at $PORTAL_HOMEPAGE after 3 minutes, deployment failed" ; fi
-    echo "### Cleaning up ###"
+    if [[ $(get_http_status_code $PORTAL_HOMEPAGE) != "200" ]] ; then exit_with_error_message "Portal still not available at $PORTAL_HOMEPAGE after 6 minutes, deployment failed" ; fi
+    echo "### CLEANING UP SECRETS/OLD IMAGES ###"
     rm $PORTAL_SECRETS_PATH
+    prune_docker_artifacts "$DOCKER_IMAGE_NAME" "$VERSION_TAG"
     echo "### DEPLOYMENT COMPLETED ###"
 }
 

@@ -223,7 +223,8 @@ class SearchFacetTest < ActiveSupport::TestCase
       mock.verify
       disease_facet.reload
       assert_empty disease_facet.find_filter_matches(disease_keyword)
-      assert_equal cancers, disease_facet.find_filter_matches(disease_keyword, filter_list: :filters_with_external)
+      assert_equal cancers.sort,
+                   disease_facet.find_filter_matches(disease_keyword, filter_list: :filters_with_external).sort
     end
   end
 

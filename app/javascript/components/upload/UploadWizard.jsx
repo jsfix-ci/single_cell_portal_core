@@ -69,14 +69,13 @@ export function RawUploadWizard({ studyAccession, name }) {
 
   const allowReferenceImageUpload = serverState?.feature_flags?.reference_image_upload
 
-  const allowAnnDataAndSeuratFileUploads = serverState?.feature_flags?.upload_seurat_and_anndata
 
-  if (allowAnnDataAndSeuratFileUploads && !STEPS.includes(AnnDataStep)) {
+  if (!STEPS.includes(AnnDataStep)) {
     STEPS.splice(8, 0, AnnDataStep)
     NON_VISUALIZABLE_STEPS.splice(0, 0, AnnDataStep)
   }
 
-  if (allowAnnDataAndSeuratFileUploads && !STEPS.includes(SeuratStep)) {
+  if (!STEPS.includes(SeuratStep)) {
     STEPS.splice(9, 0, SeuratStep)
     NON_VISUALIZABLE_STEPS.splice(1, 0, SeuratStep)
   }
@@ -350,6 +349,8 @@ export function RawUploadWizard({ studyAccession, name }) {
       setFormState(_cloneDeep(response))
       setTimeout(pollServerState, POLLING_INTERVAL)
     })
+    window.document.title = `Upload - Single Cell Portal`
+
   }, [studyAccession])
 
   const nextStep = STEPS[currentStepIndex + 1]

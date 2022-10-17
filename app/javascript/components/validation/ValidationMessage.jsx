@@ -1,5 +1,4 @@
 import React from 'react'
-import ReactDOM from 'react-dom'
 import _capitalize from 'lodash/capitalize'
 import pluralize from 'pluralize'
 

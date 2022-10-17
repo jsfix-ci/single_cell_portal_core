@@ -14,15 +14,17 @@ COPY Gemfile /home/app/webapp/Gemfile
 COPY Gemfile.lock /home/app/webapp/Gemfile.lock
 WORKDIR /home/app/webapp
 RUN bundle install
+
+# install JS dependencies
 COPY package.json /home/app/webapp/package.json
 COPY yarn.lock /home/app/webapp/yarn.lock
 RUN chmod a+w /home/app/webapp/yarn.lock
+RUN yarn install --force
+
+# copy startup scripts
 COPY set_user_permissions.bash /etc/my_init.d/01_set_user_permissions.bash
 COPY generate_dh_parameters.bash /etc/my_init.d/02_generate_dh_parameters.bash
 COPY rails_startup.bash /etc/my_init.d/03_rails_startup.bash
-
-# install JS dependencies
-RUN sudo -E -u app -H yarn install --force
 
 # Configure NGINX
 RUN rm /etc/nginx/sites-enabled/default

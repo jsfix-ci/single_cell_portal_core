@@ -69,6 +69,9 @@ then
     echo "*** MAKING tmp/pids DIR ***"
     sudo -E -u app -H mkdir -p /home/app/webapp/tmp/pids || { echo "FAILED to create ./tmp/pids/" >&2; exit 1; }
     echo "*** COMPLETED ***"
+else
+  # ensure group write permission bit is correct for pids dir, otherwise delayed_job won't start
+  sudo chmod g+w /home/app/webapp/tmp/pids
 fi
 echo "*** STARTING DELAYED_JOB for $PASSENGER_APP_ENV env ***"
 rm tmp/pids/delayed_job.*.pid

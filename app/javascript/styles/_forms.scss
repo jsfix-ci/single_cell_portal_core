@@ -210,3 +210,21 @@
 hr.divider {
   border-top: 1px solid #AAA;
 }
+
+#default-study-options-form {
+  ul.multi-checkbox {
+    padding-inline-start: 0;
+    padding: 4px;
+    max-height: 90px;
+    overflow-y: scroll;
+    background-color: white;
+    border-radius: 4px;
+    li {
+      list-style-type: none;
+      width: 100%;
+      input[type='checkbox'] {
+        margin-right: 4px;
+      }
+    }
+  }
+}

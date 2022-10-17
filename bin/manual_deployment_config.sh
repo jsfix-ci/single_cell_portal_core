@@ -3,7 +3,7 @@
 # Extract secrets from vault and copy to remote host. Only to be used as a manual process to
 # migrate secrets in the case of a failed deployment.
 
-THIS_DIR="$(cd "$(dirname "$0")"; pwd)"
+THIS_DIR="$(cd "$(dirname -- "$0")"; pwd)"
 
 # common libraries
 . $THIS_DIR/bash_utils.sh

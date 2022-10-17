@@ -4,6 +4,7 @@ class ClusterFileInfo
   embedded_in :study_file
 
   field :custom_colors, type: String
+
   # hash of annotation names to booleans of whether the annotation should, by default, be shown split
   # on pipes (assuming it is array-based).  Unspecified is treated as false by the front end
   field :annotation_split_defaults, type: String

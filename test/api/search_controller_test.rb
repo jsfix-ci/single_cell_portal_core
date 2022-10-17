@@ -470,6 +470,35 @@ class SearchControllerTest < ActionDispatch::IntegrationTest
     assert_equal expected_value, sanitized_filter
   end
 
+  test 'should return study name exact match first without quotes' do
+    studies = []
+    5.times do
+      studies << FactoryBot.create(:detached_study,
+                                   name_prefix: "Search Promotion Test #{SecureRandom.uuid}",
+                                   public: true,
+                                   user: @user,
+                                   initialized: false,
+                                   test_array: @@studies_to_clean)
+    end
+    studies.each do |study|
+      detail = study.build_study_detail
+      detail.full_description = '<p>This is the description.</p>'
+      detail.save!
+    end
+    study_name = studies.sample.name
+    execute_http_request(:get, api_v1_search_path(type: 'study', terms: study_name))
+    assert_response :success
+    assert_equal study_name, json['studies'].first['name']
+  end
+
+  test 'should reorder results for exact name match' do
+    studies, match_data = Api::V1::SearchController.promote_exact_match(@other_study.name,
+                                                                        [@study, @other_study],
+                                                                        {})
+    assert_equal @other_study.accession, studies.first.accession
+    assert_equal 1, match_data.with_indifferent_access['numResults:scp:exactTitle']
+  end
+
   test 'should return initialized studies first in empty search' do
     execute_http_request(:get, api_v1_search_path(type: 'study'))
     assert_response :success

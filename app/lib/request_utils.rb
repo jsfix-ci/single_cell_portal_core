@@ -17,29 +17,26 @@ class RequestUtils
   # Cache path methods
   ##
 
+  # get a unique cache path for an individual request
+  # will result in paths with fixed lengths, such as
+  # _single_cell_api_v1_clusters_SCP1234_f6c41dbf8f1760d7dc1b36a3db7c05ec56049a0bdc54644639005c0e41bd7490
   def self.get_cache_path(request_path, url_params)
     # transform / into _ to avoid encoding as %2f
     sanitized_path = sanitize_value_for_cache(request_path)
-    # remove unwanted parameters from cache_key, as well as empty values
-    # this simplifies base key into smaller value, e.g. _single_cell_api_v1_studies_SCP123_explore_
-    # parameters must also be sorted by name to ensure cache paths are idempotent
-    params_key = url_params.reject {|name, value| CACHE_PATH_EXCLUDE_LIST.include?(name) || value.empty?}.sort_by {|k,v| k}.
-      map do |parameter_name, parameter_value|
-      if parameter_name == 'genes'
-        "#{parameter_name}_#{construct_gene_list_hash(parameter_value)}"
-      else
-        "#{parameter_name}_#{sanitize_value_for_cache(parameter_value).split.join('_')}"
-      end
-    end
-    [sanitized_path, params_key].join('_')
+    digest_key = construct_params_digest(url_params)
+    [sanitized_path, digest_key].join('_')
   end
 
-  # create a unique hex digest of a list of genes for use in get_cache_key
-  # this prevents long gene list queries from being split in the middle due to maximum filename length limits
+  # create a unique hex digest for a hash of request parameters
+  # parameters are sorted to ensure idempotency of resulting digest, which is critical for cache management
+  # this prevents long parameter lists from being split in the middle due to maximum filename length limits
   # and resulting in invalid % encoding issue when trying to clear selected cache entries
-  def self.construct_gene_list_hash(query_list)
-    genes = query_list.split(',').map {|gene| gene.strip.gsub(/(%|\/)/, '')}.sort.join
-    Digest::SHA256.hexdigest genes
+  def self.construct_params_digest(params)
+    sorted_params = params.reject { |name, value| CACHE_PATH_EXCLUDE_LIST.include?(name) || value.empty? }
+                          .sort_by { |key, _| key }.flatten
+    return '' if sorted_params.empty? # gotcha to prevent converting empty string into hexdigest
+
+    Digest::SHA256.hexdigest sorted_params.join
   end
 
   ##
@@ -77,6 +74,12 @@ class RequestUtils
   def self.sanitize_search_terms(terms)
     inputs = terms.is_a?(Array) ? terms.join(',') : terms.to_s
     SANITIZER.sanitize(inputs).encode(Encoding.find('ASCII-8BIT'), invalid: :replace, undef: :replace)
+  end
+
+  # convert a string into a format for matching
+  # will strip non-word characters and extraneous whitespace and downcase to make matching easier
+  def self.format_text_for_match(text)
+    text.split.map { |term| term.downcase.gsub(/\W/, '') }.reject(&:blank?).join(' ')
   end
 
   # takes a comma-delimited string of ids (e.g. StudyFile ids) and returns an array of ids

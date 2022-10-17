@@ -17,7 +17,11 @@ class DeleteQueueJob < Struct.new(:object)
       end
       # mark for deletion, rename study to free up old name for use, and restrict access by removing owner
       new_name = "DELETE-#{object.data_dir}"
-      object.update!(public: false, name: new_name, url_safe_name: new_name)
+      # set various attributes to hide study while it is queued for deletion
+      # also free up name/workspace to be used again immediately
+      # validate: false is used to prevent validations from blocking update
+      object.assign_attributes(public: false, name: new_name, url_safe_name: new_name, firecloud_workspace: new_name)
+      object.save(validate: false)
     when 'StudyFile'
       file_type = object.file_type
       study = object.study

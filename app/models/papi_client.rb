@@ -23,14 +23,25 @@ class PapiClient
     ingest_cluster: ['Cluster'],
     ingest_cell_metadata: ['Metadata'],
     ingest_subsample: ['Cluster'],
-    differential_expression: ['Cluster']
+    differential_expression: ['Cluster'],
+    render_expression_arrays: ['Cluster']
   }.freeze
+
+  # jobs that require custom virtual machine types (e.g. more RAM, CPU)
+  CUSTOM_VM_ACTIONS = %i[differential_expression render_expression_arrays].freeze
+
+  # default GCE machine_type
+  DEFAULT_MACHINE_TYPE = 'n1-highmem-4'.freeze
+
+  # regex to sanitize label values for VMs/pipelines
+  # alphanumeric plus - and _
+  LABEL_SANITIZER = /[^a-zA-Z\d\-_]/
 
   # Default constructor for PapiClient
   #
   # * *params*
   #   - +project+: (String) => GCP Project to use (can be overridden by other parameters)
-  #   - +project+: (Path) => Absolute filepath to service account credentials
+  #   - +service_account_credentials+: (Path) => Absolute filepath to service account credentials
   # * *return*
   #   - +PapiClient+
   def initialize(project = self.class.compute_project, service_account_credentials = self.class.get_primary_keyfile)
@@ -82,7 +93,7 @@ class PapiClient
   #   - +action+ (String) => Action that is being performed, maps to Ingest pipeline action
   #     (e.g. 'ingest_cell_metadata', 'subsample')
   #   - +params_object+ (Class) => Class containing parameters for PAPI job (like DifferentialExpressionParameters)
-  #                                must implement :to_options_array method
+  #                                must include Parameterizable concern for to_options_array support
   #
   # * *return*
   #   - (Google::Apis::GenomicsV2alpha1::Operation)
@@ -93,29 +104,26 @@ class PapiClient
   #   - (Google::Apis::AuthorizationError) => Authorization is required
   def run_pipeline(study_file:, user:, action:, params_object: nil)
     study = study_file.study
-    accession = study.accession
 
-    # override default VM if this is a differential expression job
-    if action.to_sym == :differential_expression
-      custom_vm = create_virtual_machine_object(machine_type: params_object.machine_type)
+    # override default VM if required for this action
+    if needs_custom_vm?(action)
+      labels = job_labels(
+        action: action, study: study, study_file: study_file, user: user, machine_type: params_object.machine_type
+      )
+      custom_vm = create_virtual_machine_object(machine_type: params_object.machine_type, labels: labels)
       resources = create_resources_object(regions: ['us-central1'], vm: custom_vm)
     else
-      resources = create_resources_object(regions: ['us-central1'])
+      labels = job_labels(action:, study:, study_file:, user:)
+      resources = create_resources_object(regions: ['us-central1'], labels: labels)
     end
 
-    command_line = get_command_line(study_file: study_file, action: action, user_metrics_uuid: user.metrics_uuid,
-                                    params_object: params_object)
-    labels = {
-      study_accession: accession,
-      user_id: user.id.to_s,
-      file_id: study_file.id.to_s,
-      action: action,
-      docker_image: AdminConfiguration.get_ingest_docker_image
-    }
+    user_metrics_uuid = user.metrics_uuid
+    command_line = get_command_line(study_file:, action:, user_metrics_uuid:, params_object:)
+
     environment = set_environment_variables
     action = create_actions_object(commands: command_line, environment: environment)
     pipeline = create_pipeline_object(actions: [action], environment: environment, resources: resources)
-    pipeline_request = create_run_pipeline_request_object(pipeline: pipeline, labels: labels)
+    pipeline_request = create_run_pipeline_request_object(pipeline:, labels:)
     Rails.logger.info "Request object sent to Google Pipelines API (PAPI), excluding 'environment' parameters:"
     sanitized_pipeline_request = pipeline_request.to_h[:pipeline].except(:environment)
     sanitized_pipeline_request[:actions] = sanitized_pipeline_request[:actions][0].except(:environment)
@@ -146,10 +154,7 @@ class PapiClient
   # * *return*
   #   - (Google::Apis::GenomicsV2alpha1::RunPipelineRequest)
   def create_run_pipeline_request_object(pipeline:, labels: {})
-    Google::Apis::GenomicsV2alpha1::RunPipelineRequest.new(
-      pipeline: pipeline,
-      labels: labels
-    )
+    Google::Apis::GenomicsV2alpha1::RunPipelineRequest.new(pipeline:, labels:)
   end
 
   # Create a pipeline object detailing all required information in order to run an ingest job
@@ -163,12 +168,7 @@ class PapiClient
   # * *return*
   #   - (Google::Apis::GenomicsV2alpha1::Pipeline)
   def create_pipeline_object(actions:, environment:, resources:, timeout: nil)
-    Google::Apis::GenomicsV2alpha1::Pipeline.new(
-      actions: actions,
-      environment: environment,
-      resources: resources,
-      timeout: timeout
-    )
+    Google::Apis::GenomicsV2alpha1::Pipeline.new(actions:, environment:, resources:, timeout:)
   end
 
   # Instantiate actions for pipeline, which holds command line actions, docker information,
@@ -224,16 +224,17 @@ class PapiClient
   # Instantiate a resources object to tell where to run a pipeline
   #
   # * *params*
-  #   - regions: (Array<String>) => An array of GCP regions allowed for VM allocation
-  #   - vm: (Google::Apis::GenomicsV2alpha1::VirtualMachine) => Existing VM config to use, other than default
+  #   - +regions+: (Array<String>) => An array of GCP regions allowed for VM allocation
+  #   - +vm+: (Google::Apis::GenomicsV2alpha1::VirtualMachine) => Existing VM config to use, other than default
+  #   - +labels+ (Hash) => Key/value pairs of labels for VM
   #
   # * *return*
   #   - (Google::Apis::GenomicsV2alpha1::Resources)
-  def create_resources_object(regions:, vm: nil)
+  def create_resources_object(regions:, vm: nil, labels: {})
     Google::Apis::GenomicsV2alpha1::Resources.new(
       project_id: project,
       regions: regions,
-      virtual_machine: vm.nil? ? create_virtual_machine_object : vm
+      virtual_machine: vm.nil? ? create_virtual_machine_object(labels:) : vm
     )
   end
 
@@ -245,13 +246,18 @@ class PapiClient
   #   - +machine_type+ (String) => GCP VM machine type (defaults to 'n1-highmem-4': 4 CPU, 26GB RAM)
   #   - +boot_disk_size_gb+ (Integer) => Size of boot disk for VM, in gigabytes (defaults to 100GB)
   #   - +preemptible+ (Boolean) => Indication of whether VM can be preempted (defaults to false)
+  #   - +labels+ (Hash) => Key/value pairs of labels for VM
   # * *return*
   #   - (Google::Apis::GenomicsV2alpha1::VirtualMachine)
-  def create_virtual_machine_object(machine_type: 'n1-highmem-4', boot_disk_size_gb: 300, preemptible: false)
+  def create_virtual_machine_object(machine_type: DEFAULT_MACHINE_TYPE,
+                                    boot_disk_size_gb: 300,
+                                    preemptible: false,
+                                    labels: {})
     virtual_machine = Google::Apis::GenomicsV2alpha1::VirtualMachine.new(
       machine_type: machine_type,
       preemptible: preemptible,
       boot_disk_size_gb: boot_disk_size_gb,
+      labels: labels,
       service_account: Google::Apis::GenomicsV2alpha1::ServiceAccount.new(email: issuer, scopes: GOOGLE_SCOPES)
     )
     # assign correct network/sub-network if specified
@@ -308,9 +314,9 @@ class PapiClient
     end
 
     # add optional command line arguments based on file type and action
-    if action.to_s == 'differential_expression'
-      unless params_object.present? && params_object.respond_to?(:to_options_array)
-        raise ArgumentError, "invalid params_object for differential_expression: #{params_object.inspect}"
+    if params_object.present?
+      unless params_object_valid?(params_object)
+        raise ArgumentError, "invalid params_object for #{action}: #{params_object.inspect}"
       end
 
       optional_args = params_object.to_options_array
@@ -354,6 +360,64 @@ class PapiClient
     opts
   end
 
+  # set labels for pipeline request/virtual machine
+  #
+  # * *params*
+  #   - +action+ (String, Symbol) => action being executed
+  #   - +study+ (Study) => parent study of file
+  #   - +study_file+ (StudyFile) => File to be ingested/processed
+  #   - +user+ (User) => user requesting action
+  #   - +machine_type+ (String) => GCE machine type
+  #   - +boot_disk_size_gb+ (Integer) => size of boot disk, in GB
+  #
+  # * *returns*
+  #   - (Hash)
+  def job_labels(action:, study:, study_file:, user:, machine_type: DEFAULT_MACHINE_TYPE, boot_disk_size_gb: 300)
+    ingest_version = AdminConfiguration.get_ingest_docker_image_attributes[:tag]
+    {
+      study_accession: sanitize_label(study.accession),
+      user_id: user.id.to_s,
+      filename: sanitize_label(study_file.upload_file_name),
+      action: label_for_action(action),
+      docker_image: sanitize_label(ingest_version),
+      environment: Rails.env.to_s,
+      file_type: sanitize_label(study_file.file_type),
+      machine_type: machine_type,
+      boot_disk_size_gb: sanitize_label(boot_disk_size_gb)
+    }
+  end
+
+  # shorthand label for action
+  #
+  # * *params*
+  #   - +action+ (String) => original action
+  #
+  # * *returns*
+  #   - (String) => label for action, condensing all ingest actions to 'ingest'
+  def label_for_action(action)
+    case action.to_s
+    when /ingest/
+      'ingest_pipeline'
+    when /differential/
+      'differential_expression'
+    when 'render_expression_arrays'
+      'data_cache_pipeline'
+    else
+      action
+    end
+  end
+
+  # sanitizer for GCE label value (lowercase, alphanumeric with dash & underscore only)
+  #
+  # * *params*
+  #   - +label+ (String, Symbol, Integer) => label value
+  #
+  # * *returns*
+  #   - (String) => lowercase label with invalid characters removed
+  def sanitize_label(label)
+    label.to_s.gsub(LABEL_SANITIZER, '_').downcase
+  end
+
   private
 
   # Validate ingest action against file type
@@ -381,5 +445,19 @@ class PapiClient
   #   - (JSON) => Sanitized JSON object with escaped double quotes
   def sanitize_json(json)
     json.gsub("\"", "'")
+  end
+
+  # helper to determine which actions need custom GCP vms
+  #
+  # * *params*
+  #   - +action_name+ (String, Symbol) => name of action to run, from IngestJob::VALID_ACTIONS
+  def needs_custom_vm?(action_name)
+    CUSTOM_VM_ACTIONS.include?(action_name.to_sym)
+  end
+
+  # determine if an external parameters object is valid (e.g. DifferentialExpressionParameters)
+  # must validate internally and also implement Parameterizable#to_options_array
+  def params_object_valid?(params_object)
+    params_object.valid? && params_object.respond_to?(:to_options_array)
   end
 end

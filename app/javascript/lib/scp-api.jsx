@@ -328,9 +328,9 @@ export async function deleteStudyFile(studyAccession, fileId, mock=false) {
  * appropriate SCP readonly bearer token, and using the Google API URL that allows CORS
  *
  * @param {String} bucketName bucket name
- * @param {String} fileName file name
+ * @param {String} filePath path to file in bucket
 */
-export async function fetchBucketFile(bucketName, fileName, maxBytes=null, mock=false) {
+export async function fetchBucketFile(bucketName, filePath, maxBytes=null, mock=false) {
   const init = {
     method: 'GET',
     headers: {
@@ -338,11 +338,13 @@ export async function fetchBucketFile(bucketName, fileName, maxBytes=null, mock=
     }
   }
 
+  const encodedFilePath = encodeURIComponent(filePath)
+
   if (maxBytes) {
     init.headers.Range = `bytes=0-${maxBytes}`
   }
   init.headers = new Headers(init.headers)
-  const url = `https://storage.googleapis.com/download/storage/v1/b/${bucketName}/o/${fileName}?alt=media`
+  const url = `https://storage.googleapis.com/download/storage/v1/b/${bucketName}/o/${encodedFilePath}?alt=media`
 
   const response = await fetch(url, init).then(response => {
     // log failed attempts to access google storage to Sentry

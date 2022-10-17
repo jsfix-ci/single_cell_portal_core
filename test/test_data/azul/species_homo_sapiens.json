@@ -1,0 +1,331 @@
+{
+  "hits": [
+    {
+      "protocols": [
+        {
+          "workflow": [
+            "optimus_post_processing_v1.0.0",
+            "optimus_v4.2.3"
+          ]
+        },
+        {
+          "libraryConstructionApproach": [
+            "10X v2 sequencing"
+          ],
+          "nucleicAcidSource": [
+            "single cell"
+          ]
+        },
+        {
+          "instrumentManufacturerModel": [
+            "Illumina NextSeq 500"
+          ],
+          "pairedEnd": [
+            false
+          ]
+        }
+      ],
+      "entryId": "53c53cd4-8127-4e12-bc7f-8fe1610a715c",
+      "sources": [
+        {
+          "sourceId": "ccc0d8c3-ac34-44bb-9bb0-55e9ab67d858",
+          "sourceSpec": "tdr:datarepo-9e63ca34:snapshot/hca_prod_53c53cd481274e12bc7f8fe1610a715c__20220117_dcp2_20220307_dcp14:/0"
+        }
+      ],
+      "projects": [
+        {
+          "projectId": "53c53cd4-8127-4e12-bc7f-8fe1610a715c",
+          "projectTitle": "A Cellular Anatomy of the Normal Adult Human Prostate and Prostatic Urethra",
+          "projectShortname": "ProstateCellAtlas",
+          "laboratory": [
+            "Human Cell Atlas Data Coordination Platform",
+            "Strand Lab"
+          ],
+          "estimatedCellCount": 108700,
+          "projectDescription": "A comprehensive cellular anatomy of normal human prostate is essential for solving the cellular origins of benign prostatic hyperplasia and prostate cancer. The tools used to analyze the contribution of individual cell types are not robust. We provide a cellular atlas of the young adult human prostate and prostatic urethra using an iterative process of single-cell RNA sequencing (scRNA-seq) and flow cytometry on ∼98,000 cells taken from different anatomical regions. Immunohistochemistry with newly derived cell type-specific markers revealed the distribution of each epithelial and stromal cell type on whole mounts, revising our understanding of zonal anatomy. Based on discovered cell surface markers, flow cytometry antibody panels were designed to improve the purification of each cell type, with each gate confirmed by scRNA-seq. The molecular classification, anatomical distribution, and purification tools for each cell type in the human prostate create a powerful resource for experimental design in human prostate disease.",
+          "contributors": [
+            {
+              "institution": "UC Santa Cruz",
+              "contactName": "Rachel,A,Schwartz",
+              "projectRole": "data curator",
+              "laboratory": "Human Cell Atlas Data Coordination Platform",
+              "correspondingContributor": false,
+              "email": "rachelschwartz@ucsc.edu"
+            },
+            {
+              "institution": "UC Santa Cruz",
+              "contactName": "Parisa,,Nejad",
+              "projectRole": "data curator",
+              "laboratory": "Human Cell Atlas Data Coordination Platform",
+              "correspondingContributor": false,
+              "email": "pnejad@ucsc.edu"
+            },
+            {
+              "institution": "UT Southwestern",
+              "contactName": "Gervaise,H,Henry",
+              "projectRole": "computational scientist",
+              "laboratory": "Strand Lab",
+              "correspondingContributor": true,
+              "email": "gervaise.henry@utsouthwestern.edu"
+            },
+            {
+              "institution": "UC Santa Cruz",
+              "contactName": "William,,Sullivan",
+              "projectRole": "data curator",
+              "laboratory": "Human Cell Atlas Data Coordination Platform",
+              "correspondingContributor": false,
+              "email": "wisulliv@ucsc.edu"
+            }
+          ],
+          "publications": [
+            {
+              "publicationTitle": "A Cellular Anatomy of the Normal Adult Human Prostate and Prostatic Urethra",
+              "officialHcaPublication": false,
+              "publicationUrl": "https://www.cell.com/cell-reports/fulltext/S2211-1247(18)31877-1?_returnURL=https%3A%2F%2Flinkinghub.elsevier.com%2Fretrieve%2Fpii%2FS2211124718318771%3Fshowall%3Dtrue",
+              "doi": "10.1016/j.celrep.2018.11.086"
+            }
+          ],
+          "supplementaryLinks": [
+            "https://doi.org/10.25548/W-R8CM;  https://git.biohpc.swmed.edu/StrandLab/sc-TissueMapper_Pr; http://strandlab.net/analysis.php"
+          ],
+          "accessions": [
+            {
+              "namespace": "geo_series",
+              "accession": "GSE117403"
+            }
+          ],
+          "accessible": true
+        }
+      ],
+      "samples": [
+        {
+          "sampleEntityType": [
+            "specimens"
+          ],
+          "effectiveOrgan": [
+            "prostate gland"
+          ],
+          "id": [
+            "D17PrPz",
+            "D17PrTz",
+            "D27PrPz",
+            "D27PrTz",
+            "D35PrPz",
+            "D35PrTz"
+          ],
+          "organ": [
+            "prostate gland"
+          ],
+          "organPart": [
+            "peripheral zone of prostate",
+            "transition zone of prostate"
+          ],
+          "disease": [
+            "normal"
+          ],
+          "preservationMethod": [
+            "fresh"
+          ],
+          "source": [
+            "specimen_from_organism"
+          ]
+        }
+      ],
+      "specimens": [
+        {
+          "id": [
+            "D17PrPz",
+            "D17PrTz",
+            "D27PrPz",
+            "D27PrTz",
+            "D35PrPz",
+            "D35PrTz"
+          ],
+          "organ": [
+            "prostate gland"
+          ],
+          "organPart": [
+            "peripheral zone of prostate",
+            "transition zone of prostate"
+          ],
+          "disease": [
+            "normal"
+          ],
+          "preservationMethod": [
+            "fresh"
+          ],
+          "source": [
+            "specimen_from_organism"
+          ]
+        }
+      ],
+      "cellLines": [
+
+      ],
+      "donorOrganisms": [
+        {
+          "id": [
+            "D17",
+            "D27",
+            "D35"
+          ],
+          "donorCount": 3,
+          "developmentStage": [
+            "human adult stage"
+          ],
+          "genusSpecies": [
+            "Homo sapiens"
+          ],
+          "organismAge": [
+            {
+              "value": "25.0",
+              "unit": "year"
+            },
+            {
+              "value": "29.0",
+              "unit": "year"
+            },
+            {
+              "value": "31.0",
+              "unit": "year"
+            }
+          ],
+          "organismAgeRange": [
+            [
+              788400000.0,
+              788400000.0
+            ],
+            [
+              914544000.0,
+              914544000.0
+            ],
+            [
+              977616000.0,
+              977616000.0
+            ]
+          ],
+          "biologicalSex": [
+            "male"
+          ],
+          "disease": [
+            "normal"
+          ]
+        }
+      ],
+      "organoids": [
+
+      ],
+      "cellSuspensions": [
+        {
+          "organ": [
+            "prostate gland"
+          ],
+          "organPart": [
+            "peripheral zone of prostate",
+            "transition zone of prostate"
+          ],
+          "selectedCellType": [
+            "basal cell of prostate epithelium",
+            "epithelial cell of prostate",
+            "fibroblast of connective tissue of prostate",
+            "luminal cell of prostate epithelium",
+            "prostate epithelial cell",
+            "prostate stromal cell",
+            "smooth muscle cell of prostate"
+          ],
+          "totalCells": 108701
+        }
+      ],
+      "dates": [
+        {
+          "aggregateLastModifiedDate": "2021-09-30T17:38:55.685000Z",
+          "aggregateSubmissionDate": "2021-05-13T22:14:48.756000Z",
+          "aggregateUpdateDate": "2021-09-30T17:38:55.685000Z",
+          "lastModifiedDate": "2021-09-30T17:38:55.685000Z",
+          "submissionDate": "2021-05-13T22:14:48.756000Z",
+          "updateDate": "2021-09-30T17:38:55.685000Z"
+        }
+      ],
+      "fileTypeSummaries": [
+        {
+          "count": 32,
+          "fileSource": [
+            null
+          ],
+          "totalSize": 371800015176,
+          "matrixCellCount": null,
+          "format": "fastq.gz",
+          "isIntermediate": null,
+          "contentDescription": [
+            "DNA sequence"
+          ]
+        },
+        {
+          "count": 16,
+          "fileSource": [
+            "DCP/2 Analysis"
+          ],
+          "totalSize": 22068537401,
+          "matrixCellCount": null,
+          "format": "loom",
+          "isIntermediate": true,
+          "contentDescription": [
+            "Count Matrix"
+          ]
+        },
+        {
+          "count": 16,
+          "fileSource": [
+            "DCP/2 Analysis"
+          ],
+          "totalSize": 384697792085,
+          "matrixCellCount": null,
+          "format": "bam",
+          "isIntermediate": null,
+          "contentDescription": [
+            null
+          ]
+        },
+        {
+          "count": 3,
+          "fileSource": [
+            "GEO"
+          ],
+          "totalSize": 475803421,
+          "matrixCellCount": null,
+          "format": "mtx.gz",
+          "isIntermediate": false,
+          "contentDescription": [
+            "Matrix"
+          ]
+        },
+        {
+          "count": 6,
+          "fileSource": [
+            "GEO"
+          ],
+          "totalSize": 1232335,
+          "matrixCellCount": null,
+          "format": "tsv.gz",
+          "isIntermediate": false,
+          "contentDescription": [
+            "Matrix"
+          ]
+        },
+        {
+          "count": 1,
+          "fileSource": [
+            "DCP/2 Analysis"
+          ],
+          "totalSize": 1528939804,
+          "matrixCellCount": null,
+          "format": "loom",
+          "isIntermediate": false,
+          "contentDescription": [
+            "Count Matrix"
+          ]
+        }
+      ]
+    }
+  ]
+}

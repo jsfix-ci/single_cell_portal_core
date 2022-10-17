@@ -6,6 +6,7 @@
                     data: { toggle: 'tooltip', placement: 'left' }, title: 'Learn about new Single Cell Portal features!' %>
   <% end %>
   <% if @selected_branding_group.present? %>
+  <% content_for(:html_title) { "#{@selected_branding_group.name} - Collections - Single Cell Portal" } %>
     <% if @selected_branding_group.banner_image.file %>
       <style>
         #main-banner {

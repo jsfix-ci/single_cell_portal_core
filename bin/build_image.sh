@@ -4,7 +4,7 @@
 # cleans up untagged images after push when overwriting tags
 # meant to be run as part of Jenkins deployment, but can be used as standalone to build/push specified image
 # TODO (SCP-4494): Add this script to corresponding Jenkins jobs
-THIS_DIR="$(cd "$(dirname "$0")"; pwd)"
+THIS_DIR="$(cd "$(dirname -- "$0")"; pwd)"
 
 # common libraries
 . $THIS_DIR/bash_utils.sh

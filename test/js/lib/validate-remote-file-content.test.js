@@ -45,7 +45,7 @@ describe('Client-side file validation for sync', () => {
     const expectedUrl =
         'https://storage.googleapis.com/download/storage/v1/b/' +
         'broad-singlecellportal-public/o/' +
-        'test%2FDATA_MATRIX_LOG_TPM_mismatch_columns.txt?alt=media'
+        'test%252FDATA_MATRIX_LOG_TPM_mismatch_columns.txt?alt=media'
 
     expect(global.fetch).toHaveBeenCalledWith(
       expectedUrl,

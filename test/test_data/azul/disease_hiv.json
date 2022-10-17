@@ -1,0 +1,346 @@
+{
+  "hits": [
+    {
+      "protocols": [
+        {
+          "workflow": [
+            "optimus_post_processing_v1.0.0",
+            "optimus_v4.2.3"
+          ]
+        },
+        {
+          "libraryConstructionApproach": [
+            "10X 3' v2 sequencing"
+          ],
+          "nucleicAcidSource": [
+            "single cell"
+          ]
+        },
+        {
+          "instrumentManufacturerModel": [
+            "Illumina HiSeq 2500"
+          ],
+          "pairedEnd": [
+            false
+          ]
+        }
+      ],
+      "entryId": "0fd8f918-62d6-4b8b-ac35-4c53dd601f71",
+      "sources": [
+        {
+          "sourceId": "bbc476e1-5f7a-47fd-aaab-1a5bcd461b16",
+          "sourceSpec": "tdr:datarepo-76169feb:snapshot/hca_prod_0fd8f91862d64b8bac354c53dd601f71__20220110_dcp2_20220114_dcp12:/0"
+        }
+      ],
+      "projects": [
+        {
+          "projectId": "0fd8f918-62d6-4b8b-ac35-4c53dd601f71",
+          "projectTitle": "An Atlas of Immune Cell Exhaustion in HIV-Infected Individuals Revealed by Single-Cell Transcriptomics.",
+          "projectShortname": "ImmuneCellExhaustianHIV",
+          "laboratory": [
+            "Department of Medicine, Division of Infectious Diseases",
+            "Department of Pediatrics, Division of Genetics, Institute for Genomic Medicine, Program in Immunology"
+          ],
+          "estimatedCellCount": 43731,
+          "projectDescription": "The effects of HIV infection on immune cell exhaustion at the transcriptomic level was investigated by analyzing single-cell RNA sequencing of peripheral blood mononuclear cells from four healthy subjects (37,847 cells) and six HIV-infected donors (28,610 cells).",
+          "contributors": [
+            {
+              "institution": "EMBL-EBI",
+              "contactName": "Ami,,Day",
+              "projectRole": "data curator",
+              "laboratory": null,
+              "correspondingContributor": false,
+              "email": null
+            },
+            {
+              "institution": "University of California San Diego",
+              "contactName": "Kriti,,Agrawal",
+              "projectRole": null,
+              "laboratory": "Department of Pediatrics, Division of Genetics, Institute for Genomic Medicine, Program in Immunology",
+              "correspondingContributor": false,
+              "email": null
+            },
+            {
+              "institution": "University of California San Diego",
+              "contactName": "Tariq,M,Rana",
+              "projectRole": null,
+              "laboratory": "Department of Pediatrics, Division of Genetics, Institute for Genomic Medicine, Program in Immunology",
+              "correspondingContributor": true,
+              "email": "trana@ucsd.edu"
+            },
+            {
+              "institution": "University of California San Diego",
+              "contactName": "Qiong,,Zhang",
+              "projectRole": null,
+              "laboratory": "Department of Pediatrics, Division of Genetics, Institute for Genomic Medicine, Program in Immunology",
+              "correspondingContributor": false,
+              "email": null
+            },
+            {
+              "institution": "University of California San Diego",
+              "contactName": "Maile Ann Young,,Karris",
+              "projectRole": null,
+              "laboratory": "Department of Medicine, Division of Infectious Diseases",
+              "correspondingContributor": false,
+              "email": null
+            },
+            {
+              "institution": "University of California San Diego",
+              "contactName": "Shaobo,,Wang",
+              "projectRole": null,
+              "laboratory": "Department of Pediatrics, Division of Genetics, Institute for Genomic Medicine, Program in Immunology",
+              "correspondingContributor": false,
+              "email": null
+            },
+            {
+              "institution": "University of California San Diego",
+              "contactName": "Hui,,Hui",
+              "projectRole": null,
+              "laboratory": "Department of Pediatrics, Division of Genetics, Institute for Genomic Medicine, Program in Immunology",
+              "correspondingContributor": false,
+              "email": null
+            }
+          ],
+          "publications": [
+            {
+              "publicationTitle": "An atlas of immune cell exhaustion in HIV-infected individuals revealed by single-cell transcriptomics.",
+              "officialHcaPublication": false,
+              "publicationUrl": "https://doi.org/10.1080/22221751.2020.1826361",
+              "doi": "10.1080/22221751.2020.1826361"
+            }
+          ],
+          "supplementaryLinks": [
+            null
+          ],
+          "accessions": [
+            {
+              "namespace": "geo_series",
+              "accession": "GSE157829"
+            },
+            {
+              "namespace": "insdc_project",
+              "accession": "SRP282057"
+            },
+            {
+              "namespace": "insdc_study",
+              "accession": "PRJNA662927"
+            }
+          ],
+          "accessible": true
+        }
+      ],
+      "samples": [
+        {
+          "sampleEntityType": [
+            "specimens"
+          ],
+          "effectiveOrgan": [
+            "blood"
+          ],
+          "id": [
+            "SAMN16100343",
+            "SAMN16100344",
+            "SAMN16100345",
+            "SAMN16100346"
+          ],
+          "organ": [
+            "blood"
+          ],
+          "organPart": [
+            null
+          ],
+          "disease": [
+            "HIV infectious disease"
+          ],
+          "preservationMethod": [
+            null
+          ],
+          "source": [
+            "specimen_from_organism"
+          ]
+        }
+      ],
+      "specimens": [
+        {
+          "id": [
+            "SAMN16100343",
+            "SAMN16100344",
+            "SAMN16100345",
+            "SAMN16100346"
+          ],
+          "organ": [
+            "blood"
+          ],
+          "organPart": [
+            null
+          ],
+          "disease": [
+            "HIV infectious disease"
+          ],
+          "preservationMethod": [
+            null
+          ],
+          "source": [
+            "specimen_from_organism"
+          ]
+        }
+      ],
+      "cellLines": [
+
+      ],
+      "donorOrganisms": [
+        {
+          "id": [
+            "donor_PID_168",
+            "donor_PID_471",
+            "donor_PID_529",
+            "donor_PID_630"
+          ],
+          "donorCount": 4,
+          "developmentStage": [
+            "human adult stage"
+          ],
+          "genusSpecies": [
+            "Homo sapiens"
+          ],
+          "organismAge": [
+            {
+              "value": "36.0",
+              "unit": "year"
+            },
+            {
+              "value": "58.0",
+              "unit": "year"
+            },
+            {
+              "value": "59.0",
+              "unit": "year"
+            },
+            {
+              "value": "60.0",
+              "unit": "year"
+            }
+          ],
+          "organismAgeRange": [
+            [
+              1135296000.0,
+              1135296000.0
+            ],
+            [
+              1829088000.0,
+              1829088000.0
+            ],
+            [
+              1860624000.0,
+              1860624000.0
+            ],
+            [
+              1892160000.0,
+              1892160000.0
+            ]
+          ],
+          "biologicalSex": [
+            "male"
+          ],
+          "disease": [
+            "HIV infectious disease"
+          ]
+        }
+      ],
+      "organoids": [
+
+      ],
+      "cellSuspensions": [
+        {
+          "organ": [
+            "blood"
+          ],
+          "organPart": [
+            null
+          ],
+          "selectedCellType": [
+            null
+          ],
+          "totalCells": null
+        }
+      ],
+      "dates": [
+        {
+          "aggregateLastModifiedDate": "2021-09-30T17:37:46.691000Z",
+          "aggregateSubmissionDate": "2021-03-19T12:13:31.447000Z",
+          "aggregateUpdateDate": "2021-09-30T17:37:46.691000Z",
+          "lastModifiedDate": "2021-09-30T17:37:46.691000Z",
+          "submissionDate": "2021-03-19T12:13:31.447000Z",
+          "updateDate": "2021-09-30T17:37:46.691000Z"
+        }
+      ],
+      "fileTypeSummaries": [
+        {
+          "count": 124,
+          "fileSource": [
+            null
+          ],
+          "totalSize": 106183323408,
+          "matrixCellCount": null,
+          "format": "fastq.gz",
+          "isIntermediate": null,
+          "contentDescription": [
+            "DNA sequence"
+          ]
+        },
+        {
+          "count": 4,
+          "fileSource": [
+            "DCP/2 Analysis"
+          ],
+          "totalSize": 4560503185,
+          "matrixCellCount": null,
+          "format": "loom",
+          "isIntermediate": true,
+          "contentDescription": [
+            "Count Matrix"
+          ]
+        },
+        {
+          "count": 1,
+          "fileSource": [
+            "DCP/2 Analysis"
+          ],
+          "totalSize": 677616697,
+          "matrixCellCount": null,
+          "format": "loom",
+          "isIntermediate": false,
+          "contentDescription": [
+            "Count Matrix"
+          ]
+        },
+        {
+          "count": 4,
+          "fileSource": [
+            "DCP/2 Analysis"
+          ],
+          "totalSize": 84883220489,
+          "matrixCellCount": null,
+          "format": "bam",
+          "isIntermediate": null,
+          "contentDescription": [
+            null
+          ]
+        },
+        {
+          "count": 1,
+          "fileSource": [
+            "GEO"
+          ],
+          "totalSize": 122654720,
+          "matrixCellCount": null,
+          "format": "tar",
+          "isIntermediate": false,
+          "contentDescription": [
+            "Matrix"
+          ]
+        }
+      ]
+    }
+  ]
+}

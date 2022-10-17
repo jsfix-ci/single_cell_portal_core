@@ -50,7 +50,9 @@ const MOCK_CLUSTER_RESPONSE = {
     identifier: 'biosample_id--group--study'
   },
   subsample: 'all',
-  consensus: null
+  consensus: null,
+  externalLink: { url: '', title: '', description: '' },
+  customColors: {}
 }
 
 const CACHE_PERF_PARAMS = {
@@ -156,13 +158,13 @@ describe('getNewContextMap correctly assigns contexts', () => {
 
     render((
       <ScatterTab studyAccession='SCP101'
-        exploreParams={{
+        exploreParamsWithDefaults={{
           cluster: 'clusterA',
           spatialGroups: ['spatialClusterA'],
           annotation: { name: 'foo', type: 'group' },
           genes: ['farsa']
         }}
-        updateExploreParams={() => {}}
+        updateExploreParamsWithDefaults={() => {}}
         exploreInfo={MOCK_EXPLORE_RESPONSE}
         isGene={true}
         isMultiGene={false}

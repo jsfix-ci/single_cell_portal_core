@@ -1,12 +1,13 @@
 import React, { useEffect, useState } from 'react'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faPalette } from '@fortawesome/free-solid-svg-icons'
+import { faPalette, faExternalLinkAlt, faTimes, faSearch } from '@fortawesome/free-solid-svg-icons'
 import Modal from 'react-bootstrap/lib/Modal'
 import { HexColorPicker, HexColorInput } from 'react-colorful'
-import _cloneDeep from 'lodash/cloneDeep'
+import Button from 'react-bootstrap/lib/Button'
+import { getFeatureFlagsWithDefaults } from '~/providers/UserProvider'
+
 
 import { log } from '~/lib/metrics-api'
-import { UNSPECIFIED_ANNOTATION_NAME } from '~/lib/cluster-utils'
 import PlotUtils from '~/lib/plot'
 const { scatterLabelLegendWidth, getColorForLabel, getLegendSortedLabels } = PlotUtils
 
@@ -17,8 +18,8 @@ function getActivity(isActive) {
 
 /** Component for row in legend */
 function LegendEntry({
-  label, numPoints, iconColor, correlations,
-  numLabels, hiddenTraces, updateHiddenTraces, showColorControls, updateEditedCustomColors, setActiveTraceLabel
+  label, numPoints, iconColor, correlations, numLabels, hiddenTraces, updateHiddenTraces,
+  showColorControls, updateEditedCustomColors, setActiveTraceLabel, showLegendSearch
 }) {
   let entry = label
   // whether to show the color picker modal
@@ -65,7 +66,9 @@ function LegendEntry({
         className={`scatter-legend-row ${shownClass}`}
         role="button"
         onClick={entryClickFunction}
-        onMouseEnter={() => setActiveTraceLabel(label)}
+        onMouseEnter={() => {
+          setActiveTraceLabel(label)
+        }}
         onMouseLeave={() => setActiveTraceLabel(null)}
       >
         <div className="scatter-legend-icon" style={iconStyle}>
@@ -76,7 +79,7 @@ function LegendEntry({
           <span className="num-points" title={`${numPoints} points in this group`}>{numPoints}</span>
         </div>
       </div>
-      { showColorPicker &&
+      { showColorPicker && !showLegendSearch &&
         <Modal
           id='color-picker-modal'
           show={showColorPicker}
@@ -137,13 +140,13 @@ function getShowHideEnabled(hiddenTraces, countsByLabel) {
   return enabled
 }
 
-
 /** Component for custom legend for scatter plots */
 export default function ScatterPlotLegend({
   name, height, countsByLabel, correlations, hiddenTraces,
-  updateHiddenTraces, customColors, editedCustomColors, setEditedCustomColors,
-  enableColorPicking=false, saveCustomColors, activeTraceLabel, setActiveTraceLabel,
-  splitLabelArrays, setSplitLabelArrays, hasArrayLabels
+  updateHiddenTraces, customColors, editedCustomColors, setEditedCustomColors, setCustomColors,
+  enableColorPicking=false, activeTraceLabel, setActiveTraceLabel,
+  splitLabelArrays, setSplitLabelArrays, hasArrayLabels,
+  externalLink, saveCustomColors
 }) {
   // is the user currently in color-editing mode
   const [showColorControls, setShowColorControls] = useState(false)
@@ -151,40 +154,22 @@ export default function ScatterPlotLegend({
   const labels = getLegendSortedLabels(countsByLabel)
   const numLabels = labels.length
 
-  // setLegendLabels(labels)
-
-  const legendEntries = labels
-    .map((label, i) => {
-      const numPoints = countsByLabel[label]
-      const iconColor = getColorForLabel(label, customColors, editedCustomColors, i)
-
-      return (
-        <LegendEntry
-          key={label}
-          label={label}
-          numPoints={numPoints}
-          iconColor={iconColor}
-          correlations={correlations}
-          hiddenTraces={hiddenTraces}
-          updateHiddenTraces={updateHiddenTraces}
-          numLabels={numLabels}
-          updateEditedCustomColors={updateEditedCustomColors}
-          showColorControls={showColorControls}
-          setActiveTraceLabel={setActiveTraceLabel}
-        />
-      )
-    })
+  const [labelsToShow, setLabelsToShow] = useState(labels)
 
   const style = { width: scatterLabelLegendWidth, height }
   const filteredClass = (hiddenTraces.length === 0) ? 'unfiltered' : ''
   const [showIsEnabled, hideIsEnabled] =
     getShowHideEnabled(hiddenTraces, countsByLabel)
 
+  const flags = getFeatureFlagsWithDefaults()
+
+  // filter text for searching the legend
+  const [filter, setFilter] = useState('')
+
   /** updates the user picked color for the given label.  does *not* save change to the server */
   function updateEditedCustomColors(label, color) {
-    const newColors = _cloneDeep(editedCustomColors)
-    newColors[label] = color
-    setEditedCustomColors(newColors)
+    editedCustomColors[label] = color
+    setEditedCustomColors({ ...editedCustomColors })
   }
 
   /** resets any unsaved changes to user colors */
@@ -194,24 +179,61 @@ export default function ScatterPlotLegend({
   }
 
   /** resets any unsaved changes to user colors and clears custom colors */
-  function resetColors() {
+  async function resetColors() {
     setEditedCustomColors({})
-    saveCustomColors({})
+    await saveCustomColors({})
     setShowColorControls(false)
   }
 
   /** save the colors to the server */
-  function saveColors() {
+  async function saveColors() {
     // merge the user picked colors with existing custom colors so previously saved values are preserved
-    const colorsToSave = _cloneDeep(customColors)
-    Object.assign(colorsToSave, editedCustomColors)
+    const colorsToSave = Object.assign(customColors, editedCustomColors)
+    await saveCustomColors(colorsToSave)
     setShowColorControls(false)
-    saveCustomColors(colorsToSave)
   }
 
   /** collect general information when a user's mouse enters the legend  */
   function logMouseEnter() {
     log('hover:scatterlegend', { numLabels })
+  }
+
+  /** create mapping of labels and colors of full label list (used for filtered legends) */
+  const fullLabelsMappedToColor = labels.map((label, i) => {
+    const iconColor = getColorForLabel(label, customColors, editedCustomColors, i)
+    return { label, iconColor }
+  })
+
+  /** retrieve the color for the label specified (used for filtered legends) */
+  function getColorForLabelIcon(specifiedLabel) {
+    const labelAndColor = fullLabelsMappedToColor.find(legendItem => legendItem.label === specifiedLabel)
+    return labelAndColor.iconColor
+  }
+
+  /** Update the labels to be shown in the legend based on the user filtering (used for filtered legends) */
+  useEffect(() => {
+    let filteredLabels
+    if (filter === '') {
+      filteredLabels = labels
+    } else {
+      const lowerCaseFilter = filter.toLowerCase()
+      filteredLabels = labels.filter(f => f.toLowerCase().includes(lowerCaseFilter))
+    }
+
+    setLabelsToShow(filteredLabels)
+  }, [filter])
+
+
+  /** only show the clear button if there is input in the filter searchbar (used for filtered legends) */
+  const showClear = !!filter
+
+  /** only show the legend search if there are greater than 30 labels in the legend and flag is enabled */
+  const showLegendSearch = numLabels >= 30 && flags?.legend_search
+
+  /** handle a user pressing the 'x' to clear the field */
+  function handleClear() {
+    setFilter('')
+    setLabelsToShow(labels)
   }
 
   return (
@@ -220,46 +242,39 @@ export default function ScatterPlotLegend({
       onMouseEnter={logMouseEnter}
       style={style}>
       <div className="scatter-legend-head">
-        <div>
-          <p className="scatter-legend-name">{name}</p>
-          {labels.length > 1 && !showColorControls &&
-          <>
-            <a
-              role="button"
-              data-analytics-name='legend-show-all'
-              className={`stateful-link ${getActivity(showIsEnabled)}`}
-              disabled={!showIsEnabled}
-              onClick={() => {showHideAll('show', labels, updateHiddenTraces)}}
-            >Show all</a>
-            <a
-              role="button"
-              data-analytics-name='legend-hide-all'
-              className={`stateful-link pull-right ${getActivity(hideIsEnabled)}`}
-              disabled={!hideIsEnabled}
-              onClick={() => {showHideAll('hide', labels, updateHiddenTraces)}}
-            >Hide all</a>
-          </>
-          }
+        {externalLink.url &&
+        <div className="cluster-external-link-container">
+          <a
+            className="cluster-external-link"
+            href={externalLink.url}
+            target="blank"
+            data-toggle="tooltip"
+            data-original-title={externalLink.description}
+          >
+            {externalLink.title}&nbsp;&nbsp;<FontAwesomeIcon icon={faExternalLinkAlt}/>
+          </a>
         </div>
-        { hasArrayLabels &&
-          <div>
-            { splitLabelArrays &&
-              <a
-                role="button"
-                data-analytics-name='split-traces-unsplit'
-                onClick={() => {updateHiddenTraces([], false, true); setSplitLabelArrays(false)}}
-              >Merge array labels</a>
-            }
-            { !splitLabelArrays &&
-              <a
-                role="button"
-                data-analytics-name='split-traces-split'
-                onClick={() => {updateHiddenTraces([], false, true); setSplitLabelArrays(true)}}
-              >Split array labels</a>
-            }
-          </div>
         }
-        { enableColorPicking &&
+        <p className="scatter-legend-name">{name}</p>
+        { (hasArrayLabels && !showLegendSearch) &&
+            <div>
+              { splitLabelArrays &&
+                <a
+                  role="button"
+                  data-analytics-name='split-traces-unsplit'
+                  onClick={() => {updateHiddenTraces([], false, true); setSplitLabelArrays(false)}}
+                >Merge array labels</a>
+              }
+              { !splitLabelArrays &&
+                <a
+                  role="button"
+                  data-analytics-name='split-traces-split'
+                  onClick={() => {updateHiddenTraces([], false, true); setSplitLabelArrays(true)}}
+                >Split array labels</a>
+              }
+            </div>
+        }
+        { enableColorPicking && !showLegendSearch &&
           <div>
             { showColorControls &&
               <>
@@ -285,8 +300,69 @@ export default function ScatterPlotLegend({
             }
           </div>
         }
+        <div>
+          {numLabels > 1 && !showColorControls &&
+          <>
+            <a
+              role="button"
+              data-analytics-name='legend-show-all'
+              className={`stateful-link ${getActivity(showIsEnabled)}`}
+              disabled={!showIsEnabled}
+              onClick={() => {showHideAll('show', labels, updateHiddenTraces)}}
+            >Show all</a>
+            <a
+              role="button"
+              data-analytics-name='legend-hide-all'
+              className={`stateful-link pull-right ${getActivity(hideIsEnabled)}`}
+              disabled={!hideIsEnabled}
+              onClick={() => {showHideAll('hide', labels, updateHiddenTraces)}}
+            >Hide all</a>
+          </>
+          }
+        </div>
+        {(!showColorControls && showLegendSearch) && <div className='legend-search'>
+          <span className='legend-search-icon'><FontAwesomeIcon icon={faSearch} /></span>
+          <input
+            id="filter"
+            data-analytics-name='legend-search'
+            name="filter"
+            type="text"
+            className='no-border'
+            placeholder='Search'
+            value={filter}
+            onChange={event => setFilter(event.target.value)}
+          />
+          { showClear && <Button
+            type='button'
+            data-analytics-name='clear-legend-search'
+            className='legend-search-icon'
+            onClick={handleClear} >
+            <FontAwesomeIcon icon={faTimes} />
+          </Button> }
+        </div>}
+        {labelsToShow.map((label, i) => {
+          const numPoints = countsByLabel[label]
+          const iconColor = showLegendSearch ?
+            getColorForLabelIcon(label) :
+            getColorForLabel(label, customColors, editedCustomColors, i)
+          return (
+            <LegendEntry
+              key={label}
+              label={label}
+              numPoints={numPoints}
+              iconColor={iconColor}
+              correlations={correlations}
+              hiddenTraces={hiddenTraces}
+              updateHiddenTraces={updateHiddenTraces}
+              numLabels={labelsToShow.length}
+              updateEditedCustomColors={updateEditedCustomColors}
+              showColorControls={showColorControls}
+              setActiveTraceLabel={setActiveTraceLabel}
+              showLegendSearch={showLegendSearch}
+            />
+          )
+        })}
       </div>
-      {legendEntries}
     </div>
   )
 }

@@ -1,3 +1,5 @@
+<% content_for(:html_title) { 'Reports - Single Cell Portal' } %>
+
 <h1>Reports <%= link_to "<i class='fas fa-fw fa-chart-bar'></i> Request a new report".html_safe, report_request_path, class: 'btn btn-primary pull-right', id: 'report-request' %></h1>
 <h3 class="lead">Updated as of <%= Time.zone.now.strftime("%A, %B %-d %Y %r") %></h3>
 <div class="row">

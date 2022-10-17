@@ -726,13 +726,17 @@ class SiteController < ApplicationController
   # permit parameters for updating studies on study settings tab (smaller list than in studies controller)
   def study_params
     params.require(:study).permit(:name, :description, :public, :embargo, :cell_count,
-                                  :default_options => [:cluster, :annotation, :color_profile, :expression_label, :deliver_emails,
-                                                       :cluster_point_size, :cluster_point_alpha, :cluster_point_border, :precomputed_heatmap_label],
+                                  :default_options => [:cluster, :annotation, :color_profile, :expression_label,
+                                                       :deliver_emails, :cluster_point_size, :cluster_point_alpha,
+                                                       :cluster_point_border, :precomputed_heatmap_label,
+                                                       override_viz_limit_annotations: []],
                                   study_shares_attributes: [:id, :_destroy, :email, :permission],
                                   study_detail_attributes: [:id, :full_description],
                                   reviewer_access_attributes: [:id, :expires_at],
-                                  authors_attributes: [:id, :first_name, :last_name, :email, :institution, :corresponding, :orcid, :_destroy],
-                                  publications_attributes: [:id, :title, :journal, :citation, :url, :pmcid, :preprint, :_destroy],
+                                  authors_attributes: [:id, :first_name, :last_name, :email, :institution,
+                                                       :corresponding, :orcid, :_destroy],
+                                  publications_attributes: [:id, :title, :journal, :citation, :url, :pmcid,
+                                                            :preprint, :_destroy],
                                   external_resources_attributes: [:id, :_destroy, :title, :description, :url],
     )
   end

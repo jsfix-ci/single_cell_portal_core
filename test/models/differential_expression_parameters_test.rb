@@ -51,25 +51,25 @@ class DifferentialExpressionParametersTest < ActiveSupport::TestCase
     dense_params.attributes.each do |name, value|
       next if value.blank? # gene_file and barcode_file will not be set
 
-      expected_name = DifferentialExpressionParameters.to_cli_opt(name)
+      expected_name = Parameterizable.to_cli_opt(name)
       assert_includes options_array, expected_name
       assert_includes options_array, value
     end
-    assert_includes options_array, '--differential-expression'
+    assert_includes options_array, DifferentialExpressionParameters::PARAMETER_NAME
 
     sparse_params = DifferentialExpressionParameters.new(@sparse_options)
     options_array = sparse_params.to_options_array
     sparse_params.attributes.each do |name, value|
-      expected_name = DifferentialExpressionParameters.to_cli_opt(name)
+      expected_name = Parameterizable.to_cli_opt(name)
       assert_includes options_array, expected_name
       assert_includes options_array, value
     end
-    assert_includes options_array, '--differential-expression'
+    assert_includes options_array, DifferentialExpressionParameters::PARAMETER_NAME
   end
 
   test 'converts keys into cli options' do
-    assert_equal '--annotation-name', DifferentialExpressionParameters.to_cli_opt(:annotation_name)
-    assert_equal '--foo', DifferentialExpressionParameters.to_cli_opt('foo')
+    assert_equal '--annotation-name', Parameterizable.to_cli_opt(:annotation_name)
+    assert_equal '--foo', Parameterizable.to_cli_opt('foo')
   end
 
   test 'should set default machine type for DE jobs' do

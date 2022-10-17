@@ -140,6 +140,9 @@ class ApplicationController < ActionController::Base
         @default_cluster_annotations['Cannot Display'] << @default_cluster&.formatted_cell_annotation(cell_annotation)
       end
     end
+    # set array of viz override values, always showing current selections first
+    invalid_annotation_names = @default_cluster_annotations['Cannot Display'].map(&:first).sort
+    @viz_override_annotations = @study.override_viz_limit_annotations + invalid_annotation_names
     # initialize reviewer access object
     @reviewer_access = @study.reviewer_access.present? ? @study.reviewer_access : @study.build_reviewer_access
   end

@@ -3,7 +3,7 @@
 # load secrets from Vault for running/deploying SCP docker container
 
 # defaults
-THIS_DIR="$(cd "$(dirname "$0")"; pwd)"
+THIS_DIR="$(cd "$(dirname -- "$0")"; pwd)"
 DOCKER_IMAGE_FOR_VAULT_CLIENT='vault:1.1.3'
 export VAULT_ADDR
 export JENKINS_VAULT_TOKEN_PATH

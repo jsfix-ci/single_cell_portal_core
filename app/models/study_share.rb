@@ -222,6 +222,8 @@ class StudyShare
 
 	# revoke FireCloud workspace access on share deletion, will email owner on fail to manually remove sharing as we can't do a validation on destroy
 	def revoke_firecloud_acl
+		return true if Rails.env.test? # ignore in test environment
+
 		begin
 			unless self.permission == 'Reviewer'
 				acl = ApplicationController.firecloud_client.create_workspace_acl(self.email, 'NO ACCESS')

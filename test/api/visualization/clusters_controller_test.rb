@@ -97,7 +97,9 @@ class ClustersControllerTest < ActionDispatch::IntegrationTest
       "annotParams"=>{"name"=>"foo", "type"=>"group", "scope"=>"cluster", "values"=>["bar", "baz"], "identifier"=>"foo--group--cluster"},
       "subsample"=>"all",
       "splitLabelArrays"=>false,
-      "consensus"=>nil}, json)
+      "consensus"=>nil,
+      "externalLink"=>{"url"=>nil, "title"=>nil, "description"=>nil}
+    }, json)
   end
 
   test 'show should handle numeric clusters' do

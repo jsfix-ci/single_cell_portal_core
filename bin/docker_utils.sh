@@ -2,7 +2,7 @@
 
 # shell shortcuts for starting/stopping/removing docker containers
 
-THIS_DIR="$(cd "$(dirname "$0")"; pwd)"
+THIS_DIR="$(cd "$(dirname -- "$0")"; pwd)"
 
 # load common utils
 
@@ -79,4 +79,58 @@ function ensure_container_running {
         fi
     done
     echo "$RUNNING"
+}
+
+# get all matching images, will return image IDs in the order of most recent first
+function get_matching_image_ids {
+    IMAGE_NAME="$1"
+    IMAGES=$(docker images | grep -F $IMAGE_NAME | awk '{ print $3 }' | xargs echo -n)
+    echo -n "$IMAGES"
+}
+
+# remove all but the most recent release image
+# due to complexities of handling arrays/values in different shells, this only works in bash as this
+# is what our deployed environments default to
+function prune_docker_artifacts {
+    if [[ "$SHELL" = '/bin/zsh' ]]; then
+        echo "zsh detected, exiting as this function only operates on bash shells"
+        return 1
+    fi
+    IMAGE_NAME="$1"
+    CURRENT_TAG="$2"
+    if [[ -z "$IMAGE_NAME" ]] || [[ -z "$CURRENT_TAG" ]]; then
+        echo "Not enough arguments supplied, quitting"
+        return 1
+    fi
+    # get all matching images, then grab second entry as the rollback image
+    ALL_IMAGES=$(get_matching_image_ids $IMAGE_NAME)
+    RELEASE_IMAGE_ID=$(echo $ALL_IMAGES | awk '{ print $1 }')
+    ROLLBACK_IMAGE_ID=$(echo $ALL_IMAGES | awk '{ print $2 }')
+    # only remove older images if we are not dealing with 'development' tag, and we have identified both a
+    # release & rollback image
+    if [[ "$CURRENT_TAG" != "development" ]] && [[ -n "$RELEASE_IMAGE_ID" ]] && [[ -n "$ROLLBACK_IMAGE_ID" ]]; then
+        RELEASE_IMAGE_NAME=$(get_image_tag_from_id $RELEASE_IMAGE_ID)
+        ROLLBACK_IMAGE_NAME=$(get_image_tag_from_id $ROLLBACK_IMAGE_ID)
+        echo "Keeping $RELEASE_IMAGE_NAME as current, $ROLLBACK_IMAGE_NAME as rollback"
+        for IMAGE in $ALL_IMAGES; do
+            if [[ "$IMAGE" != "$RELEASE_IMAGE_ID" ]] && [[ "$IMAGE" != "$ROLLBACK_IMAGE_ID" ]]; then
+                IMAGE_TAG=$(get_image_tag_from_id $IMAGE)
+                echo "Removing obsolete image $IMAGE_TAG"
+                docker rmi $IMAGE
+            fi
+        done
+    else
+        echo "Skipping manual image cleanup of $IMAGE_NAME:$CURRENT_TAG; not enough versions present"
+    fi
+    # prune unused image layers and volumes
+    echo "pruning orphaned image layers"
+    docker image prune --force
+    echo "pruning orphaned volumes"
+    docker volume prune --force
+}
+
+# use docker inspect to get an image tag from ID
+function get_image_tag_from_id {
+    IMAGE_ID="$1"
+    echo $(docker image inspect $IMAGE_ID | jq '.[0].RepoTags[0]' | sed r/\"//g)
 }

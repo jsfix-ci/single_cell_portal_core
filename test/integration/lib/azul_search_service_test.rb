@@ -100,13 +100,13 @@ class AzulSearchServiceTest < ActiveSupport::TestCase
     mock.expect :format_facet_query_from_keyword, @terms_to_facets, [@terms]
     mock.expect :format_query_from_facets, @mock_term_query, [@terms_to_facets]
     mock.expect :merge_query_objects, @mock_term_query, [nil, @mock_term_query]
-    mock.expect :projects, @fibrosis_response, [{ query: @mock_term_query }]
+    mock.expect :projects_by_facet, @fibrosis_response, [{ query: @mock_term_query }]
     ApplicationController.stub :hca_azul_client, mock do
       results = AzulSearchService.get_results(selected_facets: [], terms: @terms)
       mock.verify
       project_short_name = 'PulmonaryFibrosisGSE135893'
       assert_includes results.keys, project_short_name
-      expected_term_match = { total: 5, terms: { pulmonary: 5 } }.with_indifferent_access
+      expected_term_match = %w[pulmonary]
       assert_equal expected_term_match, results.dig(project_short_name, :term_matches)
     end
   end
@@ -125,13 +125,13 @@ class AzulSearchServiceTest < ActiveSupport::TestCase
     mock.expect :format_facet_query_from_keyword, @terms_to_facets, [@terms]
     mock.expect :format_query_from_facets, @mock_term_query, [@terms_to_facets]
     mock.expect :merge_query_objects, merged_query, [organ_query, @mock_term_query]
-    mock.expect :projects, @fibrosis_response, [{ query: merged_query }]
+    mock.expect :projects_by_facet, @fibrosis_response, [{ query: merged_query }]
     ApplicationController.stub :hca_azul_client, mock do
       results = AzulSearchService.get_results(selected_facets: facets, terms: @terms)
       mock.verify
       project_short_name = 'PulmonaryFibrosisGSE135893'
       assert_includes results.keys, project_short_name
-      expected_term_match = { total: 5, terms: { pulmonary: 5 } }.with_indifferent_access
+      expected_term_match = %w[pulmonary]
       expected_facet_match = {
         organ: [{ id: 'lung', name: 'lung' }],
         disease: [
@@ -180,7 +180,7 @@ class AzulSearchServiceTest < ActiveSupport::TestCase
     mock.expect :format_query_from_facets, @mock_term_query, [@terms_to_facets]
     merged_query = @mock_facet_query.merge(@mock_term_query).with_indifferent_access
     mock.expect :merge_query_objects, merged_query, [@mock_facet_query, @mock_term_query]
-    mock.expect :projects, @fibrosis_response, [{ query: merged_query }]
+    mock.expect :projects_by_facet, @fibrosis_response, [{ query: merged_query }]
     fibrosis_shortname = 'PulmonaryFibrosisGSE135893'
     existing_match_data = { 'numResults:scp': 2, 'numResults:total': 2 }.with_indifferent_access # test merging of data
     ApplicationController.stub :hca_azul_client, mock do
@@ -197,8 +197,8 @@ class AzulSearchServiceTest < ActiveSupport::TestCase
       hca_facet_entry = facet_map[fibrosis_shortname]
       assert hca_facet_entry.present?
       assert_equal 3, hca_facet_entry[:facet_search_weight]
-      assert_equal 5, hca_entry.dig(:term_matches, :total)
-      assert_equal @terms, hca_entry.dig(:term_matches, :terms).keys
+      assert_equal 5, hca_entry[:term_search_weight]
+      assert_equal @terms, hca_entry[:term_matches]
       assert_equal 1, match_data['numResults:azul']
       assert_equal 3, match_data['numResults:total']
     end

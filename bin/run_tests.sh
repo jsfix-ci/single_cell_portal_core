@@ -107,12 +107,11 @@ bin/delayed_job restart $PASSENGER_APP_ENV -n 6 || { echo "FAILED to start DELAY
 if [[ "$TEST_FILEPATH" == "" ]]; then
   echo "Precompiling assets, yarn and vite..."
   export NODE_OPTIONS="--max-old-space-size=4096"
-  RAILS_ENV=test bundle exec vite:install_dependencies
   if [[ "$CI" == true ]]; then
     git config --global --add safe.directory $(pwd)
   fi
   git checkout .
-  RAILS_ENV=test NODE_ENV=test bin/bundle exec rake assets:precompile
+  RAILS_ENV=test NODE_ENV=test bin/rails assets:precompile
 fi
 
 echo "Generating indexes..."

@@ -131,6 +131,7 @@ export default function MyStudiesPage() {
       setStudyList(response)
       setIsLoading(false)
     })
+    window.document.title = `My studies - Single Cell Portal`
   }, [])
 
   let pageControlDisplay = <></>

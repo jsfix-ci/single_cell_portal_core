@@ -63,14 +63,20 @@ class ClusterCacheServiceTest < ActiveSupport::TestCase
 
   test 'should cache study defaults' do
     cluster = @study.default_cluster
-    cluster_name = cluster.name.gsub(/\./, '_') # need to escape period in cluster name for cache path
     annotation = @study.default_annotation
     annotation_name, annotation_type, annotation_scope = annotation.split('--')
-    expected_default_path = "_single_cell_api_v1_studies_#{@study.accession}_clusters__default_cluster_name__default" \
-                            "_fields_coordinates_cells_annotation"
-    expected_named_path = "_single_cell_api_v1_studies_#{@study.accession}_clusters_#{cluster_name}_annotation_name_" \
-                          "#{annotation_name}_annotation_scope_#{annotation_scope}_annotation_type_#{annotation_type}_" \
-                          "cluster_name_#{cluster_name}_fields_coordinates_cells_annotation_subsample_all"
+    default_params = { cluster_name: '_default', fields: 'coordinates,cells,annotation' }.with_indifferent_access
+    expected_default_path = RequestUtils.get_cache_path(
+      "/single_cell/api/v1/studies/#{@study.accession}/clusters/_default",
+      default_params
+    )
+    named_params = { cluster_name: cluster.name, fields: 'coordinates,cells,annotation',
+                     annotation_name: annotation_name, annotation_type: annotation_type,
+                     annotation_scope: annotation_scope, subsample: 'all' }.with_indifferent_access
+    expected_named_path = RequestUtils.get_cache_path(
+      "/single_cell/api/v1/studies/#{@study.accession}/clusters/#{cluster.name}",
+      named_params
+    )
     ClusterCacheService.cache_study_defaults(@study)
     assert Rails.cache.exist?(expected_default_path), "did not find default cache entry at #{expected_default_path}"
     assert Rails.cache.exist?(expected_named_path), "did not find named cache entry at #{expected_named_path}"

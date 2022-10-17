@@ -100,6 +100,12 @@ class StudyFile
   field :z_axis_max, type: Integer
   field :is_spatial, type: Boolean, default: false
 
+  # Hyperlink to an external web resource for a cluster
+  # Set in upload / sync UI.  Shown in Study Overview page.
+  field :external_link_url, type: String
+  field :external_link_title, type: String # Link text
+  field :external_link_description, type: String # Link tooltip
+
   # for spatial files, the ids of cluster files that correspond to this file for default display
   field :spatial_cluster_associations, type: Array, default: []
   field :queued_for_deletion, type: Boolean, default: false
@@ -257,6 +263,18 @@ class StudyFile
       key :type, :integer
       key :description, 'Z axis domain maximum (for Clusters)'
     end
+    property :external_link_url do
+      key :type, :string
+      key :description, 'URL of external link  (for Clusters)'
+    end
+    property :external_link_title do
+      key :type, :string
+      key :description, 'Title of external link  (for Clusters)'
+    end
+    property :external_link_description do
+      key :type, :string
+      key :description, 'Description of / tooltip for external link  (for Clusters)'
+    end
     property :queued_for_deletion do
       key :type, :boolean
       key :default, false
@@ -407,6 +425,18 @@ class StudyFile
         property :z_axis_max do
           key :type, :integer
           key :description, 'Z axis domain maximum (for Clusters)'
+        end
+        property :external_link_url do
+          key :type, :string
+          key :description, 'URL of external link  (for Clusters)'
+        end
+        property :external_link_title do
+          key :type, :string
+          key :description, 'Title of external link  (for Clusters)'
+        end
+        property :external_link_description do
+          key :type, :string
+          key :description, 'Description of / tooltip for external link  (for Clusters)'
         end
         property :options do
           key :type, :object

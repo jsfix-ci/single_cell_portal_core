@@ -84,7 +84,8 @@ module Api
             gene_count: 0,
             study_url: '#',
             file_information: study[:file_information],
-            term_matches: @term_list
+            term_matches: study[:term_matches],
+            term_search_weight: study[:term_search_weight]
           }
           if @studies_by_facet.present?
             # faceted search was run, so append filter matches

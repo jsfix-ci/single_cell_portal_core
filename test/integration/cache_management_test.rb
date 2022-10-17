@@ -60,66 +60,76 @@ class CacheManagementTest < ActionDispatch::IntegrationTest
 
   def test_manage_cache_entries
     cluster = @study.cluster_groups.first
-    cluster_underscore = cluster.name.split.join('_') # for API cache paths
+    cluster_name = cluster.name.gsub(/ /, '_')
     genes = @study.genes.map(&:name)
-    genes_hash = Digest::SHA256.hexdigest genes.sort.join
     cluster.cell_annotations.each do |cell_annotation|
-      annotation = "#{cell_annotation[:name]}--#{cell_annotation[:type]}--cluster"
-      puts "Testing with annotation: #{annotation}"
-
       # get various actions subject to caching
       get api_v1_study_explore_path(study_id: @study.accession), as: :json
       get api_v1_study_clusters_path(study_id: @study.accession), as: :json
-      get api_v1_study_cluster_path(study_id: @study.accession, annotation_name: cell_annotation[:name],
-                                    annotation_type: cell_annotation[:type], annotation_scope: 'cluster',
-                                    cluster_name: cluster.name), as: :json
-      get api_v1_study_expression_path(study_id: @study.accession, annotation_name: cell_annotation[:name],
-                                       annotation_type: cell_annotation[:type], annotation_scope: 'cluster',
-                                       cluster_name: cluster.name, consensus: 'mean', genes: genes.join(','),
-                                       data_type: 'violin')
+      cluster_params = { study_id: @study.accession, annotation_name: cell_annotation[:name],
+                         annotation_type: cell_annotation[:type], annotation_scope: 'cluster',
+                         cluster_name: cluster_name }
+      get api_v1_study_cluster_path(**cluster_params), as: :json
+      expression_params = { study_id: @study.accession, annotation_name: cell_annotation[:name],
+                            annotation_type: cell_annotation[:type], annotation_scope: 'cluster',
+                            cluster_name: cluster_name, consensus: 'mean', genes: genes.join(','),
+                            data_type: 'violin' }
+      get api_v1_study_expression_path(**expression_params)
 
       # construct various cache keys for direct lookup (cannot lookup via regex)
       study_clusters_key = "_single_cell_api_v1_studies_#{@study.accession}_clusters_"
-      study_cluster_key = "#{study_clusters_key}#{cluster_underscore}_annotation_name_#{cell_annotation[:name]}_annotation_scope_cluster_annotation_type_#{cell_annotation[:type]}_cluster_name_#{cluster_underscore}"
-      expression_mean_key = "_single_cell_api_v1_studies_#{@study.accession}_expression_violin_annotation_name_#{cell_annotation[:name]}_annotation_scope_cluster_annotation_type_#{cell_annotation[:type]}_cluster_name_#{cluster_underscore}_consensus_mean_data_type_violin_genes_#{genes_hash}"
-      assert Rails.cache.exist?(study_clusters_key), "Did not find matching API clusters cache entry at #{study_clusters_key}"
-      assert Rails.cache.exist?(study_cluster_key), "Did not find matching API single cluster cache entry at #{study_cluster_key}"
-      assert Rails.cache.exist?(expression_mean_key), "Did not find matching API expression mean cache entry at #{expression_mean_key}"
+      study_cluster_key = RequestUtils.get_cache_path(
+        api_v1_study_cluster_path(study_id: @study.accession, cluster_name: cluster_name),
+        cluster_params.with_indifferent_access
+      )
+      expression_mean_key = RequestUtils.get_cache_path(
+        api_v1_study_expression_path(study_id: @study.accession, data_type: 'violin'),
+        expression_params.with_indifferent_access
+      )
+      assert Rails.cache.exist?(study_clusters_key),
+             "Did not find matching API clusters cache entry at #{study_clusters_key}"
+      assert Rails.cache.exist?(study_cluster_key),
+             "Did not find matching API single cluster cache entry at #{study_cluster_key}"
+      assert Rails.cache.exist?(expression_mean_key),
+             "Did not find matching API expression mean cache entry at #{expression_mean_key}"
 
-      # load removal keys via associated study files
-      api_removal_key = "_single_cell_api_v1_studies_#{@study.accession}"
-
-      # clear caches individually and assert removals
-      CacheRemovalJob.new(api_removal_key).perform
-      refute Rails.cache.exist?(study_clusters_key), "Did not delete matching API clusters cache entry at #{study_clusters_key}"
-      refute Rails.cache.exist?(study_cluster_key), "Did not delete matching API single cluster cache entry at #{study_cluster_key}"
-      CacheRemovalJob.new(@study.url_safe_name).perform
-      puts "#{annotation} tests pass!"
+      CacheRemovalJob.new(@study.accession).perform
+      assert_not Rails.cache.exist?(study_clusters_key),
+                 "Did not delete matching API clusters cache entry at #{study_clusters_key}"
+      assert_not Rails.cache.exist?(study_cluster_key),
+                 "Did not delete matching API single cluster cache entry at #{study_cluster_key}"
+      assert_not Rails.cache.exist?(expression_mean_key),
+                "Did not delete matching API expression cache entry at #{expression_mean_key}"
     end
   end
 
   test 'should remove extraneous percent characters from cache paths' do
     cluster = @study.cluster_groups.first
-    cluster_underscore = cluster.name.split.join('_')
-    study_clusters_key = "_single_cell_api_v1_studies_#{@study.accession}_clusters_"
     cell_annotation = cluster.cell_annotations.sample
-    sanitized_cache_path = "#{study_clusters_key}#{cluster_underscore}_annotation_name_#{cell_annotation[:name]}_annotation_scope_cluster_annotation_type_#{cell_annotation[:type]}_cluster_name_#{cluster_underscore}_foo_bar"
-    genes = @study.genes.map(&:name)
-    genes_hash = Digest::SHA256.hexdigest genes.sort.join
-    sanitized_expression_path = "_single_cell_api_v1_studies_#{@study.accession}_expression_violin_annotation_name_#{cell_annotation[:name]}_annotation_scope_cluster_annotation_type_#{cell_annotation[:type]}_cluster_name_#{cluster_underscore}_consensus_mean_data_type_violin_genes_#{genes_hash}"
+    cluster_params = { study_id: @study.accession, annotation_name: cell_annotation[:name],
+                       annotation_type: cell_annotation[:type], annotation_scope: 'cluster',
+                       cluster_name: cluster.name, foo: "%bar%" }
 
+    sanitized_cache_path = RequestUtils.get_cache_path(
+      api_v1_study_cluster_path(study_id: @study.accession, cluster_name: cluster.name),
+      cluster_params.with_indifferent_access
+    )
     # make request with extra parameter with % sign
-    get api_v1_study_cluster_path(study_id: @study.accession, annotation_name: cell_annotation[:name],
-                                  annotation_type: cell_annotation[:type], annotation_scope: 'cluster',
-                                  cluster_name: cluster.name, foo: "%bar%"), as: :json
+    get api_v1_study_cluster_path(cluster_params), as: :json
     assert_response :success
     assert Rails.cache.exist?(sanitized_cache_path)
 
     # put % sign in gene list
-    get api_v1_study_expression_path(study_id: @study.accession, annotation_name: cell_annotation[:name],
-                                     annotation_type: cell_annotation[:type], annotation_scope: 'cluster',
-                                     cluster_name: cluster.name, consensus: 'mean', genes: genes.join(',%'),
-                                     data_type: 'violin')
+    genes = @study.genes.map(&:name)
+    expression_params = { study_id: @study.accession, annotation_name: cell_annotation[:name],
+                          annotation_type: cell_annotation[:type], annotation_scope: 'cluster',
+                          cluster_name: cluster.name, consensus: 'mean', genes: genes.join(',%'),
+                          data_type: 'violin' }
+    sanitized_expression_path = RequestUtils.get_cache_path(
+      api_v1_study_expression_path(study_id: @study.accession, data_type: 'violin'),
+      expression_params.with_indifferent_access
+    )
+    get api_v1_study_expression_path(expression_params)
 
     assert_response :success
     assert Rails.cache.exist?(sanitized_expression_path)

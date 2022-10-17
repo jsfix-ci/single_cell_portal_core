@@ -39,7 +39,9 @@ class AzulSearchService
 
     merged_facets = merge_facet_lists(selected_facets, terms_to_facets)
     Rails.logger.info "Executing Azul project query with: #{query_json}"
-    project_results = client.projects(query: query_json)
+    # determine if this is a normal faceted search (1 request), or term-based (split into separate requests and join)
+    search_method = terms_to_facets ? :projects_by_facet : :projects
+    project_results = client.send(search_method, query: query_json)
     project_results['hits'].each do |entry|
       entry_hash = entry.with_indifferent_access
       submission_date = entry_hash[:dates].first[:submissionDate]
@@ -55,7 +57,8 @@ class AzulSearchService
         created_at: submission_date, # for sorting purposes
         view_count: 0, # for sorting purposes
         facet_matches: {},
-        term_matches: {},
+        term_matches: [],
+        term_search_weight: 0,
         file_information: [
           {
             project_id: project_id,
@@ -73,8 +76,12 @@ class AzulSearchService
       result[:facet_matches] = get_facet_matches(entry_hash, merged_facets)
       if terms
         # only store result if we get a text match on project name/description
-        result[:term_matches] = get_search_term_weights(result, terms)
-        results[short_name] = result if result.dig(:term_matches, :total) > 0
+        match_info = get_search_term_weights(result, terms)
+        if match_info[:total] > 0
+          result[:term_matches] = match_info[:terms].keys
+          result[:term_search_weight] = match_info[:total]
+          results[short_name] = result
+        end
       else
         results[short_name] = result
       end

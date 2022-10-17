@@ -29,7 +29,9 @@ export const COUNTS_BY_LABEL = {
   'C 21': 1,
   'C 22': 1,
   'C 23': 1,
-  'C 24': 1
+  'C 24': 1,
+  'C 25': 1,
+  'C 26': 1
 }
 
 export const BASIC_PLOT_DATA = {
@@ -66,7 +68,12 @@ export const BASIC_PLOT_DATA = {
   annotType: 'group',
   annotName: 'biosample_id',
   clusterFileId: 'aaaaaaa1111112222234344',
-  customColors: {}
+  customColors: {},
+  externalLink: {
+    url: 'https://example.com',
+    title: 'link display text',
+    description: 'tooltip text'
+  }
 }
 
 /**
@@ -183,7 +190,11 @@ export const MANY_LABELS_MOCKS = {
             'C 21',
             'C 22',
             'C 23',
-            'C 24'
+            'C 24',
+            'C 25',
+            'C 26'
+
+
           ],
           scope: 'cluster',
           cluster_name: 'cluster_many_long_odd_labels.tsv'
@@ -891,6 +902,7 @@ export const MANY_LABELS_MOCKS = {
     subsample: 'all',
     consensus: null,
     clusterFileId: 'aaaaaaa1111112222234344',
-    customColors: {}
+    customColors: {},
+    externalLink: { url: '', title: '', description: '' }
   }
 }

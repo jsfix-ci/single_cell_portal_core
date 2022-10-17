@@ -108,10 +108,10 @@ to log in with their Google accounts.  To do so:
   * Click 'Create Credentials' > 'OAuth Client ID'
   * Select 'Web Application', and provide a name
   * For 'Authorized Javascript Origins', enter the following:
-    * `https://(your hostname)/single_cell`
+    * `https://(your hostname)`
   * For 'Authorized redirect URIs', enter the following:
     * `https://(your hostname)/single_cell/users/auth/google_oauth2/callback`
-    * `	https://(your hostname)/single_cell/api/swagger_docs/oauth2`
+    * `https://(your hostname)/single_cell/api/v1/oauth2_redirect`
   * Save the client id
   * You will also want to create a second OAuth Client ID to use in local development, using `localhost` as the hostname
 

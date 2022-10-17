@@ -1220,7 +1220,7 @@ class Study
     updated_list = override_viz_limit_annotations
     updated_list.push(annotation_name)
     self.default_options[:override_viz_limit_annotations] = updated_list
-    self.save
+    self.save!
     # clear the cache so that explore data is fetched correctly
     CacheRemovalJob.new(accession).perform
   end

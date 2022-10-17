@@ -1,8 +1,10 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Single Cell Portal</title>
-  <%= favicon_link_tag 'scp_favicon.ico' %>
+<title>
+  <%= content_for?(:html_title) ? yield(:html_title) : "Single Cell Portal" %>
+</title>  
+<%= favicon_link_tag 'scp_favicon.ico' %>
   <%= csrf_meta_tags %>
   <meta http-equiv="Content-Type" content="text/html;charset=utf-8">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
@@ -41,7 +43,7 @@
       window.SCP.featuredSpace = 'covid19'
       <% end %>
 
-      // Set the unique cookie for tracking user IDs in GA.  Also used in Mixpanel.
+      // Set the unique cookie for tracking user IDs in GA.  Also used in Mixpanel and Appcues.
       // This is not personally identifiable, lasts for 1 year or until cleared.
       if ( typeof Cookies.get('user_id') === 'undefined' ) {
         Cookies.set('user_id', '<%= user_signed_in? ? current_user.get_metrics_uuid : SecureRandom.uuid %>', {expires: 365})
@@ -90,10 +92,11 @@
     enableURLDetection: true
   };
 </script>
-<script type="text/javascript" nonce="<%= content_security_policy_script_nonce %>" src="https://fast.appcues.com/119641.js"></script>
+<script type="text/javascript" nonce="<%= content_security_policy_script_nonce %>" src="https://fast.appcues.com/49767.js"></script>
 
 </head>
 <body <%= @selected_branding_group.present? ? "data-branding-id=#{@selected_branding_group.name_as_id}" : nil %>>
+# <h1><%= yield(:title) %></h1>
 
   <%#
     TODO: In SCP-2121, move these includes back into HEAD element now that

@@ -76,5 +76,16 @@ export default function ClusteringFileForm({
         <TextFormField label="Z domain max" fieldName="z_axis_max" file={file} updateFile={updateFile}/>
       </div>
     </div>
+    <div className="row">
+      <div className="col-md-4">
+        <TextFormField label="External link URL" fieldName="external_link_url" file={file} updateFile={updateFile}/>
+      </div>
+      <div className="col-md-4">
+        <TextFormField label="External link title" fieldName="external_link_title" file={file} updateFile={updateFile}/>
+      </div>
+      <div className="col-md-4">
+        <TextFormField label="External link description (used as tooltip)" fieldName="external_link_description" file={file} updateFile={updateFile}/>
+      </div>
+    </div>
   </ExpandableFileForm>
 }

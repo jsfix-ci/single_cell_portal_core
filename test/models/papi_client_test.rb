@@ -214,19 +214,56 @@ class PapiClientTest < ActiveSupport::TestCase
     environment = @client.set_environment_variables
     actions = @client.create_actions_object(commands: de_cmd, environment: environment)
     regions = %w[us-central1]
-    custom_vm = @client.create_virtual_machine_object(machine_type: de_params.machine_type)
+    labels = @client.job_labels(
+      action: :differential_expression, study: @study, study_file: @cluster_file, user: @user,
+      machine_type: de_params.machine_type
+    )
+    machine_type = de_params.machine_type
+    custom_vm = @client.create_virtual_machine_object(machine_type:, labels:)
     resources = @client.create_resources_object(regions: regions, vm: custom_vm)
-    pipeline = @client.create_pipeline_object(actions: actions, environment: environment, resources: resources)
-    labels = { custom_machine_type: de_params.machine_type }
-    pipeline_request = @client.create_run_pipeline_request_object(pipeline: pipeline, labels: labels)
+    pipeline = @client.create_pipeline_object(actions:, environment:, resources:)
+    pipeline_request = @client.create_run_pipeline_request_object(pipeline:, labels:)
     assert pipeline_request.is_a? Google::Apis::GenomicsV2alpha1::RunPipelineRequest
     assert_equal pipeline, pipeline_request.pipeline
     assert_equal actions, pipeline_request.pipeline.actions
     assert_equal environment, pipeline_request.pipeline.environment
     assert_equal resources, pipeline_request.pipeline.resources
     assert_equal de_cmd, pipeline_request.pipeline.actions.commands
+    assert_equal labels, custom_vm.labels
+    assert_equal labels, pipeline_request.labels
 
     # specifically check machine type override
     assert_equal de_params.machine_type, pipeline_request.pipeline.resources.virtual_machine.machine_type
+  end
+
+  test 'should set labels for job' do
+    labels = @client.job_labels(action: :ingest_cluster, study: @study, study_file: @cluster_file, user: @user)
+    ingest_tag = AdminConfiguration.get_ingest_docker_image_attributes[:tag].gsub(/\./, '_')
+    expected_labels = {
+      study_accession: @study.accession.downcase,
+      user_id: @user.id.to_s,
+      filename: 'cluster_txt',
+      action: 'ingest_pipeline',
+      docker_image: ingest_tag,
+      environment: 'test',
+      file_type: 'cluster',
+      machine_type: PapiClient::DEFAULT_MACHINE_TYPE,
+      boot_disk_size_gb: '300'
+    }
+    assert_equal expected_labels, labels
+  end
+
+  test 'should get correct label for action' do
+    PapiClient::FILE_TYPES_BY_ACTION.keys.select { |k| k =~ /ingest/ }.each do |action|
+      assert_equal 'ingest_pipeline', @client.label_for_action(action)
+    end
+    assert_equal 'differential_expression', @client.label_for_action('differential_expression')
+    assert_equal 'data_cache_pipeline', @client.label_for_action('render_expression_arrays')
+    assert_equal 'foo', @client.label_for_action('foo')
+  end
+
+  test 'should sanitize label' do
+    assert_equal 'foo_bar', @client.sanitize_label('FOO&bar')
+    assert_equal 'n1-highcpu-96', @client.sanitize_label('n1-highcpu-96')
   end
 end

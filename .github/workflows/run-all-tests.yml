@@ -36,7 +36,10 @@ jobs:
           # TODO: (SCP-4496): Move production-related GCR images out of staging project
           DOCKER_IMAGE_NAME="gcr.io/broad-singlecellportal-staging/single-cell-portal"
           # add ci- prefix to avoid post-merge build failing due to missing GITHUB_HEAD_REF
-          DOCKER_IMAGE_TAG="ci-$GITHUB_HEAD_REF-$GITHUB_SHA"
+          # and strip any slashes from GITHUB_HEAD_REF to avoid 'invalid reference format' error with tag
+          # this will happen on dependabot PRs
+          SAFE_HEAD_REF=$(echo $GITHUB_HEAD_REF | sed -e 's/\//_/g')
+          DOCKER_IMAGE_TAG="ci-$SAFE_HEAD_REF-$GITHUB_SHA"
           docker build -t $DOCKER_IMAGE_NAME:$DOCKER_IMAGE_TAG -f test/Dockerfile-test .
           bin/load_env_secrets.sh -p secret/kdux/scp/staging/scp_config.json \
                                   -s secret/kdux/scp/staging/scp_service_account.json \

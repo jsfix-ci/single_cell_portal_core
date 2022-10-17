@@ -13,7 +13,9 @@ class IngestJob
   MAX_ATTEMPTS = 3
 
   # valid ingest actions to perform
-  VALID_ACTIONS = %i[ingest_expression ingest_cluster ingest_cell_metadata subsample differential_expression].freeze
+  VALID_ACTIONS = %i[
+    ingest_expression ingest_cluster ingest_cell_metadata subsample differential_expression render_expression_arrays
+  ].freeze
 
   # Mappings between actions & models (for cleaning up data on re-parses)
   MODELS_BY_ACTION = {
@@ -22,6 +24,11 @@ class IngestJob
     ingest_cell_metadata: CellMetadatum,
     ingest_subsample: ClusterGroup
   }.freeze
+
+  # non-standard job actions where data is not being read from a file to insert into MongoDB
+  # these jobs usually process files and write objects back to the bucket, and as such have special pre/post-processing
+  # steps that need to be accounted for
+  SPECIAL_ACTIONS = %i[differential_expression render_expression_arrays].freeze
 
   # Name of pipeline submission running in GCP (from [PapiClient#run_pipeline])
   attr_accessor :pipeline_name
@@ -100,7 +107,7 @@ class IngestJob
       user_message = "<p>An error has occurred when attempting to launch the parse job associated with #{study_file.upload_file_name}.  "
       user_message += 'Support staff has been notified and are investigating the issue.  '
       user_message += 'If you require immediate assistance, please contact scp-support@broadinstitute.zendesk.com.</p>'
-      unless action == :differential_expression
+      unless special_action?
         SingleCellMailer.user_notification(user, "Unable to parse #{study_file.upload_file_name}", user_message).deliver_now
       end
     end
@@ -307,8 +314,10 @@ class IngestJob
     if done? && !failed?
       Rails.logger.info "IngestJob poller: #{pipeline_name} is done!"
       Rails.logger.info "IngestJob poller: #{pipeline_name} status: #{current_status}"
-      study_file.update(parse_status: 'parsed')
-      study_file.bundled_files.each { |sf| sf.update(parse_status: 'parsed') }
+      unless special_action?
+        study_file.update(parse_status: 'parsed')
+        study_file.bundled_files.each { |sf| sf.update(parse_status: 'parsed') }
+      end
       study.reload # refresh cached instance of study
       study_file.reload # refresh cached instance of study_file
       set_study_state_after_ingest
@@ -322,14 +331,16 @@ class IngestJob
       # log errors to application log for inspection
       log_error_messages
       log_to_mixpanel # log before queuing file for deletion to preserve properties
-      # don't delete files or notify users if differential_expression job fails
-      unless action.to_sym == :differential_expression
+      # don't delete files or notify users if this is a 'special action', like DE or image pipeline jobs
+      unless special_action?
         create_study_file_copy
         study_file.update(parse_status: 'failed')
         DeleteQueueJob.new(study_file).delay.perform
-        ApplicationController.firecloud_client.delete_workspace_file(study.bucket_id, study_file.bucket_location) unless persist_on_fail
-        study_file.bundled_files.each do |bundled_file|
-          ApplicationController.firecloud_client.delete_workspace_file(study.bucket_id, bundled_file.bucket_location) unless persist_on_fail
+        unless persist_on_fail
+          ApplicationController.firecloud_client.delete_workspace_file(study.bucket_id, study_file.bucket_location)
+          study_file.bundled_files.each do |bundled_file|
+            ApplicationController.firecloud_client.delete_workspace_file(study.bucket_id, bundled_file.bucket_location)
+          end
         end
         subject = "Error: #{study_file.file_type} file: '#{study_file.upload_file_name}' parse has failed"
         user_email_content = generate_error_email_body
@@ -571,6 +582,8 @@ class IngestJob
 
     trigger = study_file.remote_location.present? ?  'sync' : 'upload'
 
+    # retrieve pipeline metadata for VM information
+    vm_info = metadata.dig('pipeline', 'resources', 'virtualMachine')
     # Event properties to log to Mixpanel.
     # Mixpanel uses camelCase for props; snake_case would degrade Mixpanel UX.
     job_props = {
@@ -581,7 +594,9 @@ class IngestJob
       action: action,
       studyAccession: study.accession,
       trigger: trigger,
-      jobStatus: failed? ? 'failed' : 'success'
+      jobStatus: failed? ? 'failed' : 'success',
+      machineType: vm_info['machineType'],
+      bootDiskSizeGb: vm_info['bootDiskSizeGb']
     }
 
     case action
@@ -649,8 +664,13 @@ class IngestJob
   def log_to_mixpanel
     mixpanel_log_props = get_job_analytics
     # log job properties to Mixpanel
-    event_name = action.to_sym == :differential_expression ? 'differential-expression-ingest' : 'ingest'
-    MetricsService.log(event_name, mixpanel_log_props, user)
+    MetricsService.log(mixpanel_event_name, mixpanel_log_props, user)
+  end
+
+  # set a mixpanel event name based on action
+  # will either be 'ingest', or '{special-action-name}-ingest'
+  def mixpanel_event_name
+    special_action? ? "#{action.to_s.gsub(/_/, '-')}-ingest" : 'ingest'
   end
 
   # generates parse completion email body
@@ -717,6 +737,12 @@ class IngestJob
     when :differential_expression
       message << "Differential expression calculations for #{params_object.cluster_name} have completed"
       message << "Selected annotation: #{params_object.annotation_name} (#{params_object.annotation_scope})"
+    when :render_expression_arrays
+      matrix_name = params_object.matrix_file_path.split('/').last
+      matrix = study.expression_matrices.find_by(name: matrix_name)
+      genes = Gene.where(study_id: study.id, study_file_id: matrix.id).count
+      message << "Image Pipeline data pre-rendering completed for \"#{params_object.cluster_name}\""
+      message << "Gene-level files created: #{genes}"
     end
     message
   end
@@ -827,5 +853,10 @@ class IngestJob
       end
       message + values
     end
+  end
+
+  # helper to identify 'special action' jobs, such as differential expression or image pipeline jobs
+  def special_action?
+    SPECIAL_ACTIONS.include?(action.to_sym)
   end
 end

@@ -24,6 +24,8 @@ export default function StudyUsageInfo({ study }) {
       setUsageInfo(response)
       setIsLoading(false)
     })
+    window.document.title = `Study usage - Single Cell Portal`
+
   }, [study.accession])
 
   const tableData = []

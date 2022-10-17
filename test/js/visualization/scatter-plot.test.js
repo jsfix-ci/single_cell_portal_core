@@ -5,8 +5,10 @@ import { render, screen, waitFor, fireEvent } from '@testing-library/react'
 import '@testing-library/jest-dom/extend-expect'
 import Plotly from 'plotly.js-dist'
 
+import * as UserProvider from '~/providers/UserProvider'
 import * as ScpApi from 'lib/scp-api'
 import ScatterPlot from 'components/visualization/ScatterPlot'
+import ScatterPlotLegend from 'components/visualization/controls/ScatterPlotLegend'
 import * as ScpApiMetrics from 'lib/scp-api-metrics'
 import * as MetricsApi from 'lib/metrics-api'
 
@@ -96,7 +98,7 @@ it('shows custom legend with default group scatter plot', async () => {
   })
 
   const legendRows = container.querySelectorAll('.scatter-legend-row')
-  expect(legendRows).toHaveLength(29)
+  expect(legendRows).toHaveLength(31)
 
   // Show all should be disabled when all traces are already shown
   const showAllButton = await screen.findByText('Show all')
@@ -114,12 +116,58 @@ it('shows custom legend with default group scatter plot', async () => {
     {
       label: 'An_underscored_label',
       numPoints: 19,
-      numLabels: 29,
+      numLabels: 31,
       wasShown: true,
       iconColor: '#377eb8',
       hasCorrelations: false
     }
   )
+})
+
+it('shows cluster external link', async () => {
+  const scatterData = BASIC_PLOT_DATA.scatter
+  const countsByLabel = COUNTS_BY_LABEL
+
+  render((<ScatterPlotLegend
+    name={scatterData.annotParams.name}
+    height={scatterData.height}
+    countsByLabel={countsByLabel}
+    hiddenTraces={[]}
+    hasArrayLabels={scatterData.hasArrayLabels}
+    externalLink={BASIC_PLOT_DATA.externalLink}
+  />))
+
+  const { container } = render(<ScatterPlot/>)
+
+  await waitFor(() => {
+    container.querySelectorAll('#study-scatter-1-legend').length > 0
+  })
+
+  const externalLink = await screen.findByText('link display text')
+  expect(externalLink).toBeTruthy()
+})
+
+it('shows legend search', async () => {
+  const scatterData = BASIC_PLOT_DATA.scatter
+  const countsByLabel = COUNTS_BY_LABEL
+  jest
+    .spyOn(UserProvider, 'getFeatureFlagsWithDefaults')
+    .mockReturnValue({
+      legend_search: true
+    })
+
+  render((
+    <ScatterPlotLegend
+      name={scatterData.annotParams.name}
+      height={scatterData.height}
+      countsByLabel={countsByLabel}
+      hiddenTraces={[]}
+      hasArrayLabels={scatterData.hasArrayLabels}
+      externalLink={BASIC_PLOT_DATA.externalLink}
+    />))
+
+  const labelSearchBox = await screen.findByPlaceholderText('Search')
+  expect(labelSearchBox).toBeTruthy()
 })
 
 describe('getPlotlyTraces handles expression graphs', () => {
@@ -174,5 +222,3 @@ describe('getPlotlyTraces handles expression graphs', () => {
     expect(traces[0].marker.reversescale).toEqual(true)
   })
 })
-
-

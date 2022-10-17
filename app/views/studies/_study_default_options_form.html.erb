@@ -22,6 +22,10 @@
           <%= f.label :annotation, 'Default Annotation' %><br />
           <%= f.select :annotation, grouped_options_for_select(@default_cluster_annotations, @study.default_annotation), {}, class: 'form-control' %>
         </div>
+        <div class="col-sm-4">
+          <%= f.label :color_profile, "Default Color Profile <i class='fas fa-info-circle' title='The default color profile only applies to the selected annotation (if the type is numeric)' data-toggle='tooltip'></i>".html_safe %><br />
+          <%= f.select :color_profile, options_for_select(SiteController::COLORSCALE_THEMES, @study.default_color_profile), {include_blank: 'N/A'} , class: 'form-control' %>
+        </div>
       </div>
       <div class="form-group row">
         <div class="col-sm-4">
@@ -38,17 +42,13 @@
         </div>
       </div>
       <div class="form-group row">
-        <div class="col-sm-4">
-          <%= f.label :color_profile, "Default Color Profile <i class='fas fa-info-circle' title='The default color profile only applies to the selected annotation (if the type is numeric)' data-toggle='tooltip'></i>".html_safe %><br />
-          <%= f.select :color_profile, options_for_select(SiteController::COLORSCALE_THEMES, @study.default_color_profile), {include_blank: 'N/A'} , class: 'form-control' %>
-        </div>
-        <div class="col-sm-4">
-          <%= f.label :cluster_point_border, 'Show Cluster Point Borders?' %><br />
-          <%= f.select :cluster_point_border, options_for_select([['Yes', true],['No', false]], @study.show_cluster_point_borders?) , {}, class: 'form-control' %>
-        </div>
-        <div class="col-sm-4">
-          <%= f.label :cluster_point_alpha, "Cluster Point Opacity <i class='fas fa-fw fa-question-circle' data-toggle='tooltip' title='Global value for the transparency (alpha) of all cluster points.  Only values between 0 and 1 are accepted.'></i>".html_safe %><br />
-          <%= f.number_field :cluster_point_alpha, value: @study.default_cluster_point_alpha, in: 0.0..1.0, step: 0.05, class: 'form-control' %>
+        <div class="col-sm-6">
+          <% if @viz_override_annotations.any? %>
+            <%= f.label :override_viz_limit_annotations, "Add undisplayed annotations (>200 or single value) to dropdown" %><br />
+            <%= render partial: '/layouts/multiselect_checkbox_field', locals: {
+              form: f, options: @viz_override_annotations, overrides: @study.override_viz_limit_annotations
+            } %>
+          <% end %>
         </div>
       </div>
       <script type="text/javascript" nonce="<%= content_security_policy_script_nonce %>">

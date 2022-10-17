@@ -15,14 +15,14 @@ const MAX_PLOTS = PLOTLY_CONTEXT_NAMES.length
   * renders the scatter tab.
   */
 export default function ScatterTab({
-  exploreInfo, exploreParams, updateExploreParams, studyAccession, isGene, isMultiGene,
+  exploreInfo, exploreParamsWithDefaults, updateExploreParamsWithDefaults, studyAccession, isGene, isMultiGene,
   plotPointsSelected, isCellSelecting, showIdeogram, showViewOptionsControls, scatterColor,
   countsByLabel, setCountsByLabel, dataCache
 }) {
   // maintain the map of plotly contexts to the params that generated the corresponding visualization
   const plotlyContextMap = useRef({})
   const { scatterParams, isTwoColumn, isMultiRow, firstRowSingleCol } =
-    getScatterParams(exploreParams, isGene, isMultiGene)
+    getScatterParams(exploreParamsWithDefaults, isGene, isMultiGene)
 
   const imagesForClusters = {}
   exploreInfo.imageFiles.map(file => {
@@ -34,7 +34,7 @@ export default function ScatterTab({
 
   /** helper function for Scatter plot color updates */
   function updateScatterColor(color) {
-    updateExploreParams({ scatterColor: color }, false)
+    updateExploreParamsWithDefaults({ scatterColor: color }, false)
   }
 
   // identify any repeat graphs
@@ -64,7 +64,7 @@ export default function ScatterTab({
             <ScatterPlot
               {...{
                 studyAccession, plotPointsSelected, isCellSelecting, updateScatterColor,
-                countsByLabel, setCountsByLabel, updateExploreParams
+                countsByLabel, setCountsByLabel, updateExploreParams: updateExploreParamsWithDefaults
               }}
               {...params}
               dataCache={dataCache}
@@ -122,16 +122,16 @@ function ImageDisplay({ file, bucketName }) {
  * (one for each plot).  Also returns layout variables
  * This handles 6 permutations: (spatial / noSpatial) X (no / single / multigene)
  * note that we always pass and/or manipulate copies of the explore params for safety reasons, as we
- * never want to directly modify the exploreParams object
+ * never want to directly modify the exploreParamsWithDefaults object
  */
-export function getScatterParams(exploreParams, isGene, isMultiGene) {
+export function getScatterParams(exploreParamsWithDefaults, isGene, isMultiGene) {
   let isTwoColumn = true
   let isMultiRow = false
   let firstRowSingleCol = false
-  const isSpatial = exploreParams.spatialGroups?.length > 0
+  const isSpatial = exploreParamsWithDefaults?.spatialGroups?.length > 0
 
   const scatterParams = []
-  if (isMultiGene && !exploreParams.consensus) {
+  if (isMultiGene && !exploreParamsWithDefaults.consensus) {
     if (isSpatial) {
       // for multi-gene spatial, show the reference spatial cluster at the top, then
       // show the expression in the spatial files
@@ -139,17 +139,17 @@ export function getScatterParams(exploreParams, isGene, isMultiGene) {
       firstRowSingleCol = true
       isMultiRow = true
       // first plot is reference cluster, so no genes
-      scatterParams.push({ ...exploreParams, cluster: exploreParams.spatialGroups[0], genes: [] })
-      exploreParams.genes.forEach(gene => {
-        scatterParams.push({ ...exploreParams, cluster: exploreParams.spatialGroups[0], genes: [gene] })
+      scatterParams.push({ ...exploreParamsWithDefaults, cluster: exploreParamsWithDefaults.spatialGroups[0], genes: [] })
+      exploreParamsWithDefaults.genes.forEach(gene => {
+        scatterParams.push({ ...exploreParamsWithDefaults, cluster: exploreParamsWithDefaults.spatialGroups[0], genes: [gene] })
       })
     } else {
       // for non-spatial multigene, show each gene, with the cluster as the second plot
       isMultiRow = true
-      exploreParams.genes.forEach((gene, index) => {
-        scatterParams.push({ ...exploreParams, genes: [exploreParams.genes[index]] })
+      exploreParamsWithDefaults.genes.forEach((gene, index) => {
+        scatterParams.push({ ...exploreParamsWithDefaults, genes: [exploreParamsWithDefaults.genes[index]] })
         if (index === 0) {
-          scatterParams.push({ ...exploreParams, genes: [] })
+          scatterParams.push({ ...exploreParamsWithDefaults, genes: [] })
         }
       })
     }
@@ -157,32 +157,32 @@ export function getScatterParams(exploreParams, isGene, isMultiGene) {
     if (isSpatial) {
       // for single-gene spatial, show the gene expression and reference cluster, then the expression
       // overlaid over the spatial plot, then the spatial-cluster plot
-      scatterParams.push({ ...exploreParams })
-      scatterParams.push({ ...exploreParams, genes: [] })
+      scatterParams.push({ ...exploreParamsWithDefaults })
+      scatterParams.push({ ...exploreParamsWithDefaults, genes: [] })
       // show a row for each spatial group selected
-      exploreParams.spatialGroups.forEach(spatialGroup => {
-        scatterParams.push({ ...exploreParams, cluster: spatialGroup })
-        scatterParams.push({ ...exploreParams, cluster: spatialGroup, genes: [] })
+      exploreParamsWithDefaults.spatialGroups.forEach(spatialGroup => {
+        scatterParams.push({ ...exploreParamsWithDefaults, cluster: spatialGroup })
+        scatterParams.push({ ...exploreParamsWithDefaults, cluster: spatialGroup, genes: [] })
       })
     } else {
       // for single-gene non-spatial, show the expression plot and the cluster plot
       // for the expression plot, use the params as-is (but pass a copy for safety reasons)
-      scatterParams.push({ ...exploreParams })
+      scatterParams.push({ ...exploreParamsWithDefaults })
       // for the cluster plot, we want the same params, but with no genes.
-      scatterParams.push({ ...exploreParams, genes: [] })
+      scatterParams.push({ ...exploreParamsWithDefaults, genes: [] })
     }
   } else {
     // no gene search, just showing clusters
     if (isSpatial) {
       // for spatial non-gene, show the cluster, and then a plot for each spatial cluster
-      scatterParams.push({ ...exploreParams })
-      exploreParams.spatialGroups.forEach(spatialGroup => {
-        scatterParams.push({ ...exploreParams, cluster: spatialGroup })
+      scatterParams.push({ ...exploreParamsWithDefaults })
+      exploreParamsWithDefaults.spatialGroups.forEach(spatialGroup => {
+        scatterParams.push({ ...exploreParamsWithDefaults, cluster: spatialGroup })
       })
     } else {
       isTwoColumn = false
       // for non-spatial non-gene, just show the cluster
-      scatterParams.push({ ...exploreParams })
+      scatterParams.push({ ...exploreParamsWithDefaults })
     }
   }
   return { scatterParams: scatterParams.slice(0, MAX_PLOTS), isTwoColumn, isMultiRow, firstRowSingleCol, isSpatial }
@@ -217,5 +217,5 @@ export function getNewContextMap(scatterParams, oldContextMap) {
 
 /** returns a string from a params object, that uniquely identifies what was plotted */
 function getKeyFromScatterParams(params) {
-  return params.cluster + params.genes.join('-') + params.annotation.name
+  return params.cluster + params.genes?.join('-') + params.annotation.name
 }

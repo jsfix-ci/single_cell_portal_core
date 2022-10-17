@@ -1,3 +1,10 @@
+
+<% if @study.public? %>
+  <% content_for(:html_title) { "#{@study.name } - Single Cell Portal" } %>
+<% else %>
+  <% content_for(:html_title) { "#{@study.accession} - Single Cell Portal" } %>
+<% end %>
+
 <div class="row">
   <div class="col-md-12">
     <h1 class="study-lead">Study: <%= @study.name %> <span class="badge" id="cell-count"> <%= @study.cell_count %> cells</span></h1>

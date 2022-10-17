@@ -93,7 +93,9 @@ export function logClick(event) {
     return
   }
 
-  window.Appcues && window.Appcues.track('Click Event')
+  if (window.Appcues) {
+    logAppcuesClicks()
+  }
 
   // we use closest() so we don't lose clicks on, e.g. icons within a link/button
   // (and we have to use $.closest since IE still doesn't have built-in support for it)
@@ -106,6 +108,44 @@ export function logClick(event) {
   } else if (target.closest('.log-click').length > 0) {
     logClickOther(target.closest('.log-click')[0])
   }
+}
+
+/**
+ * Logs Appcues public events to Mixpanel
+ * https://docs.appcues.com/article/161-javascript-api
+ *
+ * Event prop building borrowed from Terra UI
+ * https://github.com/DataBiosphere/terra-ui/pull/2463/files
+ */
+function logAppcuesClicks() {
+  window.Appcues.on('all', (eventName, event) => {
+    const eventProps = {
+      'appcues.flowId': event.flowId,
+      'appcues.flowName': event.flowName,
+      'appcues.flowType': event.flowType,
+      'appcues.flowVersion': event.flowVersion,
+      'appcues.id': event.id,
+      'appcues.interaction.category': event.interaction?.category,
+      'appcues.interaction.destination': event.interaction?.destination,
+      'appcues.interaction.element': event.interaction?.element,
+      'appcues.interaction.fields': JSON.stringify(event.interaction?.fields),
+      'appcues.interaction.formId': event.interaction?.formId,
+      'appcues.interaction.text': event.interaction?.text, // not documented by Appcues, but observed and useful
+      'appcues.interactionType': event.interactionType,
+      'appcues.localeId': event.localeId,
+      'appcues.localeName': event.localeName,
+      'appcues.name': event.name,
+      'appcues.sessionId': event.sessionId,
+      'appcues.stepChildId': event.stepChildId,
+      'appcues.stepChildNumber': event.stepChildNumber,
+      'appcues.stepId': event.stepId,
+      'appcues.stepNumber': event.stepNumber,
+      'appcues.stepType': event.stepType,
+      'appcues.timestamp': event.timestamp
+    }
+    log(eventName, eventProps)
+    log('appcues:event', eventProps)
+  })
 }
 
 /** Log clicks on SVG element of analytics interest */

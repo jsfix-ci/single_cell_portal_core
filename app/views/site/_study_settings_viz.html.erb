@@ -16,6 +16,10 @@
           <%= opts.label :annotation, 'Default annotation' %><br />
           <%= opts.select :annotation, grouped_options_for_select(@default_cluster_annotations, @study.default_annotation), {},class: 'form-control' %>
         </div>
+        <div class="col-sm-4">
+          <%= opts.label :color_profile, "Default color profile <i class='fas fa-info-circle' title='Default color profile for numeric annotations and expression plots' data-toggle='tooltip'></i>".html_safe %><br />
+          <%= opts.select :color_profile, options_for_select(SiteController::COLORSCALE_THEMES, @study.default_color_profile), {include_blank: 'N/A'} , class: 'form-control' %>
+        </div>
       </div>
       <div class="form-group row">
         <div class="col-sm-4">
@@ -32,9 +36,13 @@
         </div>
       </div>
       <div class="form-group row">
-        <div class="col-sm-4">
-          <%= opts.label :color_profile, "Default color profile <i class='fas fa-info-circle' title='Default color profile for numeric annotations and expression plots' data-toggle='tooltip'></i>".html_safe %><br />
-          <%= opts.select :color_profile, options_for_select(SiteController::COLORSCALE_THEMES, @study.default_color_profile), {include_blank: 'N/A'} , class: 'form-control' %>
+        <div class="col-sm-6">
+          <% if @viz_override_annotations.any? %>
+            <%= opts.label :override_viz_limit_annotations, "Add undisplayed annotations (>200 or single value) to dropdown" %><br />
+            <%= render partial: '/layouts/multiselect_checkbox_field', locals: {
+              form: opts, options: @viz_override_annotations, overrides: @study.override_viz_limit_annotations
+            } %>
+          <% end %>
         </div>
       </div>
       <div class="form-group row">

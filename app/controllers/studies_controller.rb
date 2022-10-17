@@ -98,61 +98,12 @@ class StudiesController < ApplicationController
 
   # allow a user to sync files uploaded outside the portal into a workspace bucket with an existing study
   def sync_study
-    @study_files = @study.study_files.valid
-    @study_files.each {|study_file| study_file.build_expression_file_info if study_file.expression_file_info.nil?}
-    @directories = @study.directory_listings.to_a
-    # keep a list of what we expect to be
-    @files_by_dir = {}
-    @synced_study_files = []
-    @synced_directories = []
-    @unsynced_files = []
-    @unsynced_directories = @study.directory_listings.unsynced
-    @permissions_changed = []
+    @study_files = @study.study_files.available
+    @study_files.each { |study_file| study_file.build_expression_file_info if study_file.expression_file_info.nil? }
 
-    # get a list of workspace submissions so we know what directories to ignore
-    @submission_ids = ApplicationController.firecloud_client.get_workspace_submissions(@study.firecloud_project, @study.firecloud_workspace).map {|s| s['submissionId']}
-
-    # first sync permissions if necessary
+     # first sync permissions if necessary
     begin
-      portal_permissions = @study.local_acl
-      firecloud_permissions = ApplicationController.firecloud_client.get_workspace_acl(@study.firecloud_project, @study.firecloud_workspace)
-      firecloud_permissions['acl'].each do |user, permissions|
-        # skip project owner permissions, they aren't relevant in this context
-        # also skip the readonly service account
-        if permissions['accessLevel'] =~ /OWNER/i || (ApplicationController.read_only_firecloud_client.present? && user == ApplicationController.read_only_firecloud_client.issuer)
-          next
-        else
-          # determine whether permissions are incorrect or missing completely
-          if !portal_permissions.has_key?(user)
-            new_share = @study.study_shares.build(email: user,
-                                                  permission: StudyShare::PORTAL_ACL_MAP[permissions['accessLevel']],
-                                                  firecloud_project: @study.firecloud_project,
-                                                  firecloud_workspace: @study.firecloud_workspace,
-
-            )
-            # skip validation as we don't wont to set the acl in FireCloud as it already exists
-            new_share.save(validate: false)
-            @permissions_changed << new_share
-          elsif portal_permissions[user] != StudyShare::PORTAL_ACL_MAP[permissions['accessLevel']] && user != @study.user.email
-            # share exists, but permissions are wrong
-            share = @study.study_shares.detect {|s| s.email == user}
-            share.update(permission: StudyShare::PORTAL_ACL_MAP[permissions['accessLevel']])
-            @permissions_changed << share
-          else
-            # permissions are correct, skip
-            next
-          end
-        end
-      end
-
-      # now check to see if there have been permissions removed in FireCloud that need to be removed on the portal side
-      new_study_permissions = @study.study_shares.to_a
-      new_study_permissions.each do |share|
-        if firecloud_permissions['acl'][share.email].nil?
-          logger.info "#{Time.zone.now}: removing #{share.email} access to #{@study.name} via sync - no longer in FireCloud acl"
-          share.delete
-        end
-      end
+      @permissions_changed = StudySyncService.update_shares_from_acl(@study)
     rescue => e
       ErrorTracker.report_exception(e, current_user, @study, params)
       MetricsService.report_error(e, request, current_user, @study)
@@ -163,15 +114,7 @@ class StudiesController < ApplicationController
 
     # begin determining sync status with study_files and primary or other data
     begin
-      # create a map of file extension to use for creating directory_listings of groups of 10+ files of the same type
-      @file_extension_map = {}
-      workspace_files = ApplicationController.firecloud_client.execute_gcloud_method(:get_workspace_files, 0, @study.bucket_id)
-      # see process_workspace_bucket_files in private methods for more details on syncing
-      process_workspace_bucket_files(workspace_files)
-      while workspace_files.next?
-        workspace_files = workspace_files.next
-        process_workspace_bucket_files(workspace_files)
-      end
+      @unsynced_files = StudySyncService.process_all_remotes(@study)
     rescue => e
       ErrorTracker.report_exception(e, current_user, @study, params)
       MetricsService.report_error(e, request, current_user, @study)
@@ -180,92 +123,18 @@ class StudiesController < ApplicationController
                   alert: "We were unable to sync with your workspace bucket due to an error: #{view_context.simple_format(e.message)}.  #{SCP_SUPPORT_EMAIL}" and return
     end
 
-    files_to_remove = []
-
-    # before saving unsynced directories, make a pass to check if there were any files that ended up as study_files
-    # that should have been in a directory (might happen due to cutoff in files.next when iterating)
-    @unsynced_files.each do |study_file|
-      file_ext = DirectoryListing.file_extension(study_file.name)
-      directory = DirectoryListing.get_folder_name(study_file.name)
-      # check unsynced directories first, then existing directories
-      existing_dir = (@unsynced_directories + @directories).detect {|dir| dir.name == directory && dir.file_type == file_ext}
-      if !existing_dir.nil?
-        # we have a matching directory, so that means this file should be added to it
-        file_entry = {'name' => study_file.name, 'size' => study_file.upload_file_size, 'generation' => study_file.generation}
-        files_to_remove << study_file.generation
-        unless existing_dir.files.include?(file_entry)
-          existing_dir.files << file_entry
-        end
-      end
-    end
-
-    # now remove files that we found that were supposed to be in directory_listings
-    @unsynced_files.delete_if {|file| files_to_remove.include?(file.generation)}
-
-    # now check against latest list of files by directory vs. what was just found to see if we are missing anything and
-    # add directory to unsynced list. also check if an existing directory is now 'orphaned' because it was moved and
-    # store that reference for removal after the check is complete.  we make a list of files to remove and then take
-    # them out at the end as removing them from the list mid-iteration will skip the next file accidentally
-    orphaned_directories = []
-    @directories.each do |directory|
-      synced = true
-      if @files_by_dir[directory.name].present?
-        remove_from_dir = []
-        directory.files.each do |file|
-          if @files_by_dir[directory.name].detect {|f| f['generation'].to_i == file['generation'].to_i}.nil?
-            synced = false
-            remove_from_dir << file
-          else
-            next
-          end
-        end
-        # if no longer synced, check if already in the list and remove as files list has changed
-        if !synced
-          directory.sync_status = false
-          # remove files that are no longer present
-          remove_from_dir.each do |remove|
-            directory.files.delete(remove)
-          end
-          @unsynced_directories.delete_if {|dir| dir.name == directory.name}
-          if directory.files.any?
-            @unsynced_directories << directory
-          else
-            orphaned_directories << directory # queue for deletion as this directory is empty now
-          end
-        elsif directory.sync_status
-          @synced_directories << directory
-        end
-      else
-        # directory did not exist in @files_by_dir, so this directory_listing is orphaned and should be removed
-        orphaned_directories << directory
-      end
-    end
-
-    # remove orphaned directories
-    orphaned_directories.each do |orphan|
-      orphan.destroy
-    end
-
-    # provisionally save unsynced directories so we don't have to pass huge arrays of filenames/sizes in the form
-    # users clicking "don't sync" actually delete entries
-    @unsynced_directories.each do |directory|
-      directory.save
-    end
-
-    # reload unsynced directories to remove any that were orphaned
+    # refresh study state before continuing as new records may have been inserted
+    @study.reload
+    @synced_directories = @study.directory_listings.are_synced
     @unsynced_directories = @study.directory_listings.unsynced
 
     # split directories into primary data types and 'others'
-    @unsynced_primary_data_dirs = @unsynced_directories.select {|dir| DirectoryListing::PRIMARY_DATA_TYPES.include?(dir.file_type)}
-    @unsynced_other_dirs = @unsynced_directories.select {|dir| !DirectoryListing::PRIMARY_DATA_TYPES.include?(dir.file_type)}
+    @unsynced_primary_data_dirs, @unsynced_other_dirs = StudySyncService.load_unsynced_directories(@study)
 
     # now determine if we have study_files that have been 'orphaned' (cannot find a corresponding bucket file)
-    @orphaned_study_files = @study_files - @synced_study_files
-    @available_files = @unsynced_files.map {|f| {name: f.name, generation: f.generation, size: f.upload_file_size}}
-
-    # now remove any 'bundled' files from @synced_study_files so we can render them inside their parent file's form
-    bundled_file_ids = @study.study_file_bundles.map {|bundle| bundle.bundled_files.to_a.map(&:id)}.flatten
-    @synced_study_files.delete_if {|file| bundled_file_ids.include?(file.id)}
+    @orphaned_study_files = StudySyncService.find_orphaned_files(@study)
+    @available_files = StudySyncService.set_available_files(@unsynced_files)
+    @synced_study_files = StudySyncService.set_synced_files(@study, @orphaned_study_files)
   end
 
   # sync outputs from a specific submission
@@ -1107,6 +976,7 @@ class StudiesController < ApplicationController
                                        :remote_location, :description, :file_type, :status, :human_fastq_url, :human_data, :use_metadata_convention,
                                        :cluster_type, :generation, :x_axis_label, :y_axis_label, :z_axis_label, :x_axis_min, :x_axis_max,
                                        :y_axis_min, :y_axis_max, :z_axis_min, :z_axis_max, :is_spatial, :taxon_id, :genome_assembly_id, :study_file_bundle_id,
+                                       :external_link_url, :external_link_title, :external_link_description,
                                        spatial_cluster_associations: [],
                                        options: [:cluster_group_id, :cluster_file_id, :font_family, :font_size, :font_color,
                                                  :matrix_id, :submission_id, :bam_id, :analysis_name, :visualization_name,
@@ -1121,8 +991,9 @@ class StudiesController < ApplicationController
   end
 
   def default_options_params
-    params.require(:study_default_options).permit(:cluster, :annotation, :color_profile, :expression_label, :cluster_point_size,
-                                                  :cluster_point_alpha, :cluster_point_border, :precomputed_heatmap_label)
+    params.require(:study_default_options).permit(:cluster, :annotation, :color_profile, :expression_label,
+                                                  :cluster_point_size, :cluster_point_alpha, :cluster_point_border,
+                                                  :precomputed_heatmap_label, override_viz_limit_annotations: [])
   end
 
   def set_file_types
