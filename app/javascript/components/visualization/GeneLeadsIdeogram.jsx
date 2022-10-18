@@ -116,15 +116,14 @@ function onWillShowAnnotTooltip(annot) {
   return annot
 }
 
-function onDidShowAnnotTooltip(annot) {
-  document.querySelector('._ideoDESection').setAttribute('onmouseenter', null)
-  document.querySelector('._ideoDESection').setAttribute('onmouseleave', null)
-  document.querySelector('._ideoDESection').addEventListener('mouseenter', event => {
-    Ideogram.toggleDEDetail(true)
-  })
-  document.querySelector('._ideoDESection').addEventListener('mouseleave', event => {
-    Ideogram.toggleDEDetail(false)
-  })
+/** Toggle differential section on hover */
+function onDidShowAnnotTooltip() {
+  const deSection = document.querySelector('._ideoDESection')
+  if (!deSection) {return}
+  deSection.setAttribute('onmouseenter', null)
+  deSection.setAttribute('onmouseleave', null)
+  deSection.addEventListener('mouseenter', () => Ideogram.toggleDEDetail(true))
+  deSection.addEventListener('mouseleave', () => Ideogram.toggleDEDetail(false))
 }
 
 /** Get summary of related-genes ideogram that was just loaded or clicked */
