@@ -101,7 +101,7 @@ function conformAnalytics(props, ideogram) {
 /** Log hover over related genes ideogram tooltip */
 function onWillShowAnnotTooltip(annot) {
   // Ideogram object; used to inspect ideogram state
-   const ideogram = this // eslint-disable-line
+  const ideogram = this // eslint-disable-line
   let props = {} // let props = ideogram.getTooltipAnalytics(annot)
 
   // `props` is null if it is merely analytics noise.
@@ -116,6 +116,17 @@ function onWillShowAnnotTooltip(annot) {
   return annot
 }
 
+function onDidShowAnnotTooltip(annot) {
+  document.querySelector('._ideoDESection').setAttribute('onmouseenter', null)
+  document.querySelector('._ideoDESection').setAttribute('onmouseleave', null)
+  document.querySelector('._ideoDESection').addEventListener('mouseenter', event => {
+    Ideogram.toggleDEDetail(true)
+  })
+  document.querySelector('._ideoDESection').addEventListener('mouseleave', event => {
+    Ideogram.toggleDEDetail(false)
+  })
+}
+
 /** Get summary of related-genes ideogram that was just loaded or clicked */
 function getRelatedGenesAnalytics(ideogram) {
   let props = Object.assign({}, ideogram.relatedGenesAnalytics)
@@ -123,17 +134,17 @@ function getRelatedGenesAnalytics(ideogram) {
   return props
 }
 
-/**
-  * Callback to report analytics to Mixpanel.
-  * Helps profile denominator of click-through-rate
-  */
-function onPlotRelatedGenes() {
-  // Ideogram object; used to inspect ideogram state
-   const ideogram = this // eslint-disable-line
-  const props = getRelatedGenesAnalytics(ideogram)
+// /**
+//   * Callback to report analytics to Mixpanel.
+//   * Helps profile denominator of click-through-rate
+//   */
+// function onPlotRelatedGenes() {
+//   // Ideogram object; used to inspect ideogram state
+//    const ideogram = this // eslint-disable-line
+//   const props = getRelatedGenesAnalytics(ideogram)
 
-  log('ideogram:gene-leads', props)
-}
+//   log('ideogram:gene-leads', props)
+// }
 
 // TODO (pre-GA): Simplify Ideogram legend API to handle CSS, etc.
 const legendHeaderStyle =
@@ -169,7 +180,7 @@ export default function RelatedGenesIdeogram({
   const bucket = 'broad-singlecellportal-public'
 
   // TODO (pre-GA): Decide file path; parameterize clustering, annotation
-  const annotFileName = 'gene_leads_All_Cells_UMAP--General_Celltype_v3.tsv'
+  const annotFileName = 'gene_leads_All_Cells_UMAP--General_Celltype_v4.tsv'
   const filePath = `test%2F${annotFileName}`
   const annotationsPath = `${origin}/download/storage/v1/b/${bucket}/o/${filePath}?alt=media`
 
@@ -185,19 +196,20 @@ export default function RelatedGenesIdeogram({
       annotationHeight: 7,
       annotationsPath,
       onClickAnnot,
-      onPlotRelatedGenes,
+      // onPlotRelatedGenes,
       onWillShowAnnotTooltip,
-      showGeneStructureInTooltip: true,
+      onDidShowAnnotTooltip,
+      showGeneStructureInTooltip: false,
       showParalogNeighborhoods: taxon === 'Homo sapiens', // Works around bug in Ideogram 1.37.0, remove upon upgrade
       onLoad() {
         // Handles edge case: when organism lacks chromosome-level assembly
         if (!genomeHasChromosomes()) {return}
-        this.plotRelatedGenes(gene)
+        // this.plotRelatedGenes(gene)
         showGeneLeadsIdeogram(target)
       }
     }
     window.ideogram =
-       Ideogram.initGeneHints(ideoConfig, genesInScope)
+       Ideogram.initGeneLeads(ideoConfig, genesInScope)
 
     // Extend ideogram with custom SCP function to search genes
     window.ideogram.SCP = { searchGenes, speciesList }
