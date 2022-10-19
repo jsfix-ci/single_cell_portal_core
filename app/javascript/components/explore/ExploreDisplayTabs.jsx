@@ -280,7 +280,7 @@ export default function ExploreDisplayTabs({
             }
           </div>
         </div>
-        <div className="col-md-4 col-md-offset-1">
+        <div className="col-md-4 col-md-offset-1 send-element-back">
           <ul className="nav nav-tabs" role="tablist" data-analytics-name="explore-default">
             { enabledTabs.map(tabKey => {
               const label = tabList.find(({ key }) => key === tabKey).label
