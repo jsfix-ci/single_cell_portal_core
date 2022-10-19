@@ -116,16 +116,6 @@ function onWillShowAnnotTooltip(annot) {
   return annot
 }
 
-/** Toggle differential section on hover */
-function onDidShowAnnotTooltip() {
-  const deSection = document.querySelector('._ideoDESection')
-  if (!deSection) {return}
-  deSection.setAttribute('onmouseenter', null)
-  deSection.setAttribute('onmouseleave', null)
-  deSection.addEventListener('mouseenter', () => Ideogram.toggleDEDetail(true))
-  deSection.addEventListener('mouseleave', () => Ideogram.toggleDEDetail(false))
-}
-
 /** Get summary of related-genes ideogram that was just loaded or clicked */
 function getRelatedGenesAnalytics(ideogram) {
   let props = Object.assign({}, ideogram.relatedGenesAnalytics)
@@ -184,9 +174,8 @@ export default function RelatedGenesIdeogram({
       onClickAnnot,
       // onPlotRelatedGenes,
       onWillShowAnnotTooltip,
-      onDidShowAnnotTooltip,
       showGeneStructureInTooltip: false,
-      showParalogNeighborhoods: taxon === 'Homo sapiens', // Works around bug in Ideogram 1.37.0, remove upon upgrade
+      showParalogNeighborhoods: taxon === 'Homo sapiens', // Workaround Ideogram bug, remove upon upstream fix
       onLoad() {
         // Handles edge case: when organism lacks chromosome-level assembly
         if (!genomeHasChromosomes()) {return}
