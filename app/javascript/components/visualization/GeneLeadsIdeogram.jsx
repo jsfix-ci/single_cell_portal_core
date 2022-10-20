@@ -156,7 +156,7 @@ export default function RelatedGenesIdeogram({
   const bucket = 'broad-singlecellportal-public'
 
   // TODO (pre-GA): Decide file path; parameterize clustering, annotation
-  const annotFileName = 'gene_leads_All_Cells_UMAP--General_Celltype_v4.tsv'
+  const annotFileName = 'gene_leads_All_Cells_UMAP--General_Celltype_v5.tsv'
   const filePath = `test%2F${annotFileName}`
   const annotationsPath = `${origin}/download/storage/v1/b/${bucket}/o/${filePath}?alt=media`
 
