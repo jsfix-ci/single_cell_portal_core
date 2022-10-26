@@ -423,9 +423,11 @@ function RawScatterPlot({
   useUpdateEffect(() => {
     // Don't update if graph hasn't loaded
     if (scatterData && !isLoading) {
+      setIsLoading(true)
       const plotlyTraces = document.getElementById(graphElementId).data
       PlotUtils.sortTraces(plotlyTraces, activeTraceLabel)
       Plotly.react(graphElementId, plotlyTraces, scatterData.layout)
+      setIsLoading(false)
     }
   }, [activeTraceLabel])
 

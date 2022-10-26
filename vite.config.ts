@@ -8,8 +8,9 @@ const version = readFileSync('version.txt', { encoding: 'utf8' })
 
 export default defineConfig({
   'define': {
-    '__SCP_VERSION__': version,
-    '__FRONTEND_SERVICE_WORKER_CACHE__': process.env.VITE_FRONTEND_SERVICE_WORKER_CACHE
+    '__SCP_VERSION__': process.env.SCP_VERSION ? process.env.SCP_VERSION : version,
+    '__FRONTEND_SERVICE_WORKER_CACHE__': process.env.VITE_FRONTEND_SERVICE_WORKER_CACHE,
+    '__DEV_MODE__': process.env.VITE_DEV_MODE
   },
   'plugins': [
     // inject plugin needs to be first
@@ -21,7 +22,8 @@ export default defineConfig({
   'server': {
     'hmr': {
       'host': '127.0.0.1',
-      'protocol': 'ws'
+      'protocol': 'ws',
+      'timeout': 1.0
     }
   }
 })

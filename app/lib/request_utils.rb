@@ -169,10 +169,10 @@ class RequestUtils
   def self.log_exception(request, params, user: nil, study: nil)
     @exception = request.env['action_dispatch.exception']
     Rails.logger.error ([@exception.message] + @exception.backtrace).join($/)
-    return nil if static_asset_error?(@exception) # skip reporting if this is a static asset load error
-
-    ErrorTracker.report_exception(@exception, user, params)
-    MetricsService.report_error(@exception, request, user, study)
+    unless static_asset_error?(@exception) # skip reporting if this is a static asset load error
+      ErrorTracker.report_exception(@exception, user, params)
+      MetricsService.report_error(@exception, request, user, study)
+    end
   end
 
   # format exception JSON responses
@@ -187,8 +187,6 @@ class RequestUtils
 
   # determine if this is a 404 when trying to load a non-existent static asset
   def self.static_asset_error?(exception)
-    return false unless exception.is_a?(ActionController::RoutingError)
-
-     /(assets|packs|apple-touch)/.match?(exception.message)
+    exception.is_a?(ActionController::RoutingError) || /(assets|static|packs|apple-touch)/.match?(exception.message)
   end
 end

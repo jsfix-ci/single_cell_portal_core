@@ -582,6 +582,8 @@ class IngestJob
 
     trigger = study_file.remote_location.present? ?  'sync' : 'upload'
 
+    # retrieve pipeline metadata for VM information
+    vm_info = metadata.dig('pipeline', 'resources', 'virtualMachine')
     # Event properties to log to Mixpanel.
     # Mixpanel uses camelCase for props; snake_case would degrade Mixpanel UX.
     job_props = {
@@ -592,7 +594,9 @@ class IngestJob
       action: action,
       studyAccession: study.accession,
       trigger: trigger,
-      jobStatus: failed? ? 'failed' : 'success'
+      jobStatus: failed? ? 'failed' : 'success',
+      machineType: vm_info['machineType'],
+      bootDiskSizeGb: vm_info['bootDiskSizeGb']
     }
 
     case action

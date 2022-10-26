@@ -70,11 +70,6 @@ export default function StudyGeneField({ genes, searchGenes, allGenes, speciesLi
         }
         searchGenes(genesToSearch)
       }
-      if (event) { // this was not a 'clear'
-        const trigger = event.type // 'click' or 'submit'
-        logStudyGeneSearch(genesToSearch, trigger, speciesList)
-      }
-      searchGenes(genesToSearch)
     } else {
       setShowEmptySearchModal(true)
     }

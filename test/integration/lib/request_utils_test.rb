@@ -84,6 +84,7 @@ class RequestUtilsTest < ActiveSupport::TestCase
     assert_not RequestUtils.static_asset_error?(error)
     paths = [
       'No route matches [GET] "/apple-touch-icon-precomposed.png"',
+      'No route matches [GET] "/static/img/logo.1a41f6387d69.svg"',
       'No route matches [GET] "/single_cell/packs/foo.js"',
       'No route matches [GET] "/single_cell/assets/does-not-exist.css"'
     ]
