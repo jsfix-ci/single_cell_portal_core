@@ -12,6 +12,7 @@ services:
     ports:
       - 3000:3000
       - 3001:3001
+      - 587:587
     expose:
       - 27017
     volumes:

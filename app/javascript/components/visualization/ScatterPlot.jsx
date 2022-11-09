@@ -45,7 +45,7 @@ function RawScatterPlot({
   studyAccession, cluster, annotation, subsample, consensus, genes, scatterColor, dimensionProps,
   isAnnotatedScatter=false, isCorrelatedScatter=false, isCellSelecting=false, plotPointsSelected, dataCache,
   canEdit, expressionFilter=[0, 1],
-  countsByLabel, setCountsByLabel, hiddenTraces=[], splitLabelArrays, updateExploreParams
+  countsByLabel, setCountsByLabel, hiddenTraces=[], isSplitLabelArrays, updateExploreParams
 }) {
   const [isLoading, setIsLoading] = useState(false)
   const [bulkCorrelation, setBulkCorrelation] = useState(null)
@@ -100,8 +100,9 @@ function RawScatterPlot({
   }
 
   /** updates whether pipe-delimited label values should be split */
-  function setSplitLabelArrays(value) {
-    updateExploreParams({ splitLabelArrays: value })
+  function updateIsSplitLabelArrays(value) {
+    // console.log('split the array', value)
+    updateExploreParams({ isSplitLabelArrays: value })
   }
 
   /** Get new, updated scatter object instance, and new layout */
@@ -178,12 +179,13 @@ function RawScatterPlot({
       scatter,
       activeTraceLabel,
       expressionFilter,
-      splitLabelArrays: splitLabelArrays ?? scatter.splitLabelArrays,
+      isSplitLabelArrays: isSplitLabelArrays ?? scatter.isSplitLabelArrays,
       isRefGroup: isRG
     })
     if (isRG) {
       setCountsByLabel(labelCounts)
     }
+
     return traces
   }
 
@@ -394,7 +396,7 @@ function RawScatterPlot({
     // look for updates of individual properties, so that we don't rerender if the containing array
     // happens to be a different instance
   }, [Object.values(editedCustomColors).join(','),
-    Object.values(customColors).join(','), expressionFilter.join(','), splitLabelArrays])
+    Object.values(customColors).join(','), expressionFilter.join(','), isSplitLabelArrays])
 
   useUpdateEffect(() => {
     // Don't update if graph hasn't loaded
@@ -505,8 +507,8 @@ function RawScatterPlot({
             activeTraceLabel={activeTraceLabel}
             setActiveTraceLabel={setActiveTraceLabel}
             hasArrayLabels={scatterData.hasArrayLabels}
-            splitLabelArrays={splitLabelArrays}
-            setSplitLabelArrays={setSplitLabelArrays}
+            isSplitLabelArrays={isSplitLabelArrays}
+            updateIsSplitLabelArrays={updateIsSplitLabelArrays}
             externalLink={scatterData.externalLink}
           />
         }
@@ -589,7 +591,7 @@ function getPlotlyTraces({
   },
   activeTraceLabel,
   expressionFilter,
-  splitLabelArrays,
+  isSplitLabelArrays,
   isRefGroup
 }) {
   const unfilteredTrace = {
@@ -611,7 +613,7 @@ function getPlotlyTraces({
   const [traces, countsByLabel, expRange] = filterTrace({
     trace: unfilteredTrace,
     hiddenTraces, groupByAnnotation: isRefGroup, activeTraceLabel,
-    expressionFilter, expressionData: data.expression, splitLabelArrays
+    expressionFilter, expressionData: data.expression, isSplitLabelArrays
   })
 
   if (isRefGroup) {

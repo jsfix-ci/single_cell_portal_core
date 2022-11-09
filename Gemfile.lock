@@ -152,6 +152,7 @@ GEM
     easy_diff (1.0.0)
     erubi (1.10.0)
     execjs (2.7.0)
+    exponential-backoff (0.0.4)
     factory_bot (6.1.0)
       activesupport (>= 5.0.0)
     factory_bot_rails (6.1.0)
@@ -560,6 +561,7 @@ DEPENDENCIES
   delayed_job
   delayed_job_mongoid
   devise
+  exponential-backoff
   factory_bot_rails
   flamegraph
   font-awesome-sass!

@@ -230,7 +230,7 @@ module Api
           custom_colors = cluster.study_file.cluster_file_info&.custom_colors_as_hash || {}
           custom_annotation_colors = custom_colors[annotation[:name]] || {}
           annotation_split_defaults = cluster.study_file.cluster_file_info&.annotation_split_defaults_as_hash || {}
-          split_label_arrays = annotation_split_defaults[annotation[:name]] || false
+          is_split_label_arrays = annotation_split_defaults[annotation[:name]] || false
 
           {
             data: plot_data,
@@ -255,7 +255,7 @@ module Api
             consensus: consensus,
             customColors: custom_annotation_colors,
             clusterFileId: cluster.study_file_id.to_s,
-            splitLabelArrays: split_label_arrays,
+            isSplitLabelArrays: is_split_label_arrays,
             externalLink: {
               url: cluster.study_file[:external_link_url],
               title: cluster.study_file[:external_link_title],

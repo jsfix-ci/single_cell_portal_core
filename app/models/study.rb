@@ -1776,7 +1776,6 @@ class Study
     end
   end
 
-
   def last_public_date
     history_tracks.where('modified.public': true).order_by(created_at: :desc).first&.created_at
   end

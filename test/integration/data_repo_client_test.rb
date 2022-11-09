@@ -10,8 +10,10 @@ class DataRepoClientTest < ActiveSupport::TestCase
     @filename = 'pulmonary-fibrosis-human-lung-10XV2.loom' # name of above file
     @drs_file_id = "drs://#{DataRepoClient::REPOSITORY_HOSTNAME}/v1_#{@snapshot_id}_#{@file_id}" # computed DRS id
     bucket_id = 'datarepo-dev-54946186-bucket'
+    project_name = 'datarepo-dev-0f9f0d44'
     @gs_url = "gs://#{bucket_id}/#{@dataset_id}/#{@file_id}/#{@filename}" # computed GS url
-    @https_url = "https://www.googleapis.com/storage/v1/b/#{bucket_id}/o/#{@dataset_id}%2F#{@file_id}%2F#{@filename}?alt=media"
+    @https_url = "https://www.googleapis.com/storage/v1/b/#{bucket_id}/o/" \
+                 "#{@dataset_id}%2F#{@file_id}%2F#{@filename}?userProject=#{project_name}&alt=media"
   end
 
   # skip a test if the TDR API is not up (since it is their dev instance there is no uptime guarantee)

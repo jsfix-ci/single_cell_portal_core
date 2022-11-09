@@ -189,7 +189,7 @@ export default function ScatterPlotLegend({
   name, height, countsByLabel, correlations, hiddenTraces,
   updateHiddenTraces, customColors, editedCustomColors, setEditedCustomColors, setCustomColors,
   enableColorPicking=false, activeTraceLabel, setActiveTraceLabel,
-  splitLabelArrays, setSplitLabelArrays, hasArrayLabels,
+  isSplitLabelArrays, updateIsSplitLabelArrays, hasArrayLabels,
   externalLink, saveCustomColors
 }) {
   // is the user currently in color-editing mode
@@ -267,6 +267,10 @@ export default function ScatterPlotLegend({
     setLabelsToShow(filteredLabels)
   }, [filter])
 
+  /** Update the labels to be shown in the legend when the counts by label changes (needed for split array labels)  */
+  useEffect(() => {
+    setLabelsToShow(labels)
+  }, [countsByLabel])
 
   /** only show the clear button if there is input in the filter searchbar (used for filtered legends) */
   const showClear = !!filter
@@ -302,18 +306,24 @@ export default function ScatterPlotLegend({
         <p className="scatter-legend-name">{name}</p>
         { (hasArrayLabels && !showLegendSearch) &&
             <div>
-              { splitLabelArrays &&
+              { isSplitLabelArrays &&
                 <a
                   role="button"
                   data-analytics-name='split-traces-unsplit'
-                  onClick={() => {updateHiddenTraces([], false, true); setSplitLabelArrays(false)}}
+                  onClick={() => {
+                    updateIsSplitLabelArrays(false)
+                    updateHiddenTraces([], false, true) // TODO (SCP-4623), remove this line once ticket is complete
+                  }}
                 >Merge array labels</a>
               }
-              { !splitLabelArrays &&
+              { !isSplitLabelArrays &&
                 <a
                   role="button"
                   data-analytics-name='split-traces-split'
-                  onClick={() => {updateHiddenTraces([], false, true); setSplitLabelArrays(true)}}
+                  onClick={() => {
+                    updateIsSplitLabelArrays(true)
+                    updateHiddenTraces([], false, true) // TODO (SCP-4623), remove this line once ticket is complete
+                  }}
                 >Split array labels</a>
               }
             </div>

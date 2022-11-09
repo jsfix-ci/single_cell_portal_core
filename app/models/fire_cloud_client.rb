@@ -31,7 +31,7 @@ class FireCloudClient
   # List of URLs/Method names to never retry on or report error, regardless of error state
   ERROR_IGNORE_LIST = ["#{BASE_URL}/register"]
   # List of URLs/Method names to ignore incremental backoffs on (in cases of UI blocking)
-  RETRY_BACKOFF_BLACKLIST = ["#{BASE_URL}/register", :generate_signed_url, :generate_api_url]
+  RETRY_BACKOFF_DENYLIST = ["#{BASE_URL}/register", :generate_signed_url, :generate_api_url]
   # default namespace used for all FireCloud workspaces owned by the 'portal'
   PORTAL_NAMESPACE = ENV['PORTAL_NAMESPACE'].present? ? ENV['PORTAL_NAMESPACE'] : 'single-cell-portal'
   # Permission values allowed for FireCloud workspace ACLs
@@ -231,11 +231,11 @@ class FireCloudClient
       context = " encountered when requesting '#{path}', attempt ##{current_retry}"
       log_message = "#{e.message}: #{e.http_body}; #{context}"
       Rails.logger.error log_message
-      retry_time = retry_count * ApiHelpers::RETRY_INTERVAL
-      sleep(retry_time) unless RETRY_BACKOFF_BLACKLIST.include?(path) # only sleep if non-blocking
       # only retry if status code indicates a possible temporary error, and we are under the retry limit and
       # not calling a method that is blocked from retries
       if should_retry?(e.http_code) && retry_count < ApiHelpers::MAX_RETRY_COUNT && !ERROR_IGNORE_LIST.include?(path)
+        retry_time = retry_interval_for(current_retry)
+        sleep(retry_time) unless RETRY_BACKOFF_DENYLIST.include?(path) # only sleep if non-blocking
         process_firecloud_request(http_method, path, payload, opts, current_retry)
       else
         # we have reached our retry limit or the response code indicates we should not retry
@@ -1297,26 +1297,16 @@ class FireCloudClient
   # * *return*
   #   - Object depends on method, can be one of the following: +Google::Cloud::Storage::Bucket+, +Google::Cloud::Storage::File+,
   #     +Google::Cloud::Storage::FileList+, +Boolean+, +File+, or +String+
-
-  def execute_gcloud_method(method_name, retry_count=0, *params)
+  def execute_gcloud_method(method_name, retry_count = 0, *params)
     begin
       self.send(method_name, *params)
     rescue => e
+      status_code = extract_status_code(e)
       current_retry = retry_count + 1
-      Rails.logger.info "error calling #{method_name} with #{params.join(', ')}; #{e.message} -- attempt ##{current_retry}"
-      retry_time = retry_count * ApiHelpers::RETRY_INTERVAL
-      sleep(retry_time) unless RETRY_BACKOFF_BLACKLIST.include?(method_name)
-      # only retry if status code indicates a possible temporary error, and we are under the retry limit and
-      # not calling a method that is blocked from retries.  In case of a NoMethodError or RuntimeError, use 500 as the
-      # status code since these are unrecoverable errors
-      if e.respond_to?(:code)
-        status_code = e.code
-      elsif e.is_a?(NoMethodError) || e.is_a?(RuntimeError)
-        status_code = 500
-      else
-        status_code = nil
-      end
       if should_retry?(status_code) && retry_count < ApiHelpers::MAX_RETRY_COUNT && !ERROR_IGNORE_LIST.include?(method_name)
+        Rails.logger.info "error calling #{method_name} with #{params.join(', ')}; #{e.message} -- attempt ##{current_retry}"
+        retry_time = retry_interval_for(current_retry)
+        sleep(retry_time) unless RETRY_BACKOFF_DENYLIST.include?(method_name)
         execute_gcloud_method(method_name, current_retry, *params)
       else
         # we have reached our retry limit or the response code indicates we should not retry
@@ -1325,7 +1315,7 @@ class FireCloudClient
                                                                  retry_count: current_retry, params: params})
         end
         Rails.logger.info "Retry count exceeded calling #{method_name} with #{params.join(', ')}: #{e.message}"
-        raise RuntimeError.new "#{e.message}"
+        raise e.message # raise implicitly creates RuntimeError
       end
     end
   end
@@ -1618,5 +1608,18 @@ class FireCloudClient
         error.message + ': ' + error.http_body
       end
     end
+  end
+
+  # extract a status code from an error GCS call, accounting for upstream api.firecloud.org calls
+  #
+  # * *params*
+  #   - +error+ (Multiple) => Error from either Google Cloud Storage or Firecloud API
+  #
+  # * *returns*
+  #   - (Integer) => HTTP status code, substituting 500 for unknown errors
+  def extract_status_code(error)
+    return 500 if error.is_a?(RuntimeError)
+
+    error.status_code || error.code || 500
   end
 end

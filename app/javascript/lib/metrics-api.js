@@ -8,7 +8,7 @@ import _find from 'lodash/find'
 import _remove from 'lodash/remove'
 import $ from 'jquery'
 import { getDefaultProperties } from '@databiosphere/bard-client'
-import { logJSFetchExceptionToSentry, logJSFetchErrorToSentry } from '~/lib/sentry-logging'
+import { logJSFetchExceptionToSentry, logJSFetchErrorToSentry, logToSentry } from '~/lib/sentry-logging'
 
 import { getAccessToken } from '~/providers/UserProvider'
 import { getBrandingGroup } from '~/lib/scp-api'
@@ -322,11 +322,13 @@ export function logMenuChange(event) {
 }
 
 /**
- * Log front-end error (e.g. uncaught ReferenceError)
+ * Log front-end error (e.g. uncaught ReferenceError) to both Sentry and Mixpanel
  */
-export function logError(text) {
-  const props = { text }
+export function logError(text, error = {}) {
+  const props = { text, error }
   log('error', props)
+
+  logToSentry(error)
 }
 
 /**

@@ -240,4 +240,48 @@ class IngestJobTest < ActiveSupport::TestCase
     assert_equal cluster, @basic_study.default_cluster
     assert_equal 'foo--group--invalid', @basic_study.default_annotation
   end
+
+  test 'should launch DE jobs if study is eligible' do
+    study = FactoryBot.create(:detached_study,
+                              name_prefix: 'DE Job Test',
+                              user: @user,
+                              test_array: @@studies_to_clean)
+    raw = FactoryBot.create(
+      :expression_file, name: 'raw.txt', study: study, upload_file_size: 300,
+      expression_file_info: {
+        is_raw_counts: true, units: 'raw counts', library_preparation_protocol: 'Drop-seq',
+        biosample_input_type: 'Whole cell', modality: 'Proteomic'
+      }
+    )
+    DataArray.create!(study_id: study.id, study_file_id: raw.id, values: %w[A B C],
+                      name: "#{raw.name} Cells", array_type: 'cells', linear_data_type: 'Study',
+                      linear_data_id: study.id, array_index: 0, cluster_name: raw.name)
+    FactoryBot.create(
+      :cluster_file, name: 'clusterA.txt', study: study,
+      cell_input: { x: [1, 4, 6], y: [7, 5, 3], cells: %w[A B C] },
+      annotation_input: [
+        { name: 'foo', type: 'group', values:%w[bar bar baz] }
+      ]
+    )
+    FactoryBot.create(
+      :metadata_file, name: 'metadata.txt', study: study, cell_input: %w[A B C],
+      annotation_input: [
+        { name: 'species', type: 'group', values: %w[dog cat dog] },
+        { name: 'disease', type: 'group', values: %w[none none measles] }
+      ])
+    job = IngestJob.new(study:)
+    job_mock = Minitest::Mock.new
+    3.times do
+      job_mock.expect(:push_remote_and_launch_ingest, Delayed::Job.new)
+    end
+    mock = Minitest::Mock.new
+    3.times do
+      mock.expect(:delay, job_mock)
+    end
+    IngestJob.stub :new, mock do
+      job.launch_differential_expression_jobs
+      mock.verify
+      job_mock.verify
+    end
+  end
 end

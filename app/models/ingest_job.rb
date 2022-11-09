@@ -325,7 +325,14 @@ class IngestJob
       log_to_mixpanel
       subject = "#{study_file.file_type} file: '#{study_file.upload_file_name}' has completed parsing"
       message = generate_success_email_array
-      SingleCellMailer.notify_user_parse_complete(user.email, subject, message, study).deliver_now
+      if special_action?
+        # don't email users for 'special actions' like DE or image pipeline, instead notify admins
+        qa_config = AdminConfiguration.find_by(config_type: 'QA Dev Email')
+        email = qa_config.present? ? qa_config.value : User.find_by(admin: true)&.email
+        SingleCellMailer.notify_user_parse_complete(email, subject, message, study).deliver_now unless email.blank?
+      else
+        SingleCellMailer.notify_user_parse_complete(user.email, subject, message, study).deliver_now
+      end
     elsif done? && failed?
       Rails.logger.error "IngestJob poller: #{pipeline_name} has failed."
       # log errors to application log for inspection
@@ -369,12 +376,15 @@ class IngestJob
       if study_file.use_metadata_convention
         SearchFacet.delay.update_all_facet_filters
       end
+      launch_differential_expression_jobs
     when :ingest_expression
       study.delay.set_gene_count
+      launch_differential_expression_jobs
     when :ingest_cluster
       set_cluster_point_count
       set_study_default_options
       launch_subsample_jobs
+      launch_differential_expression_jobs
     when :ingest_subsample
       set_subsampling_flags
     when :differential_expression
@@ -488,6 +498,14 @@ class IngestJob
     if cluster_group.is_subsampling? && cluster_group.find_subsampled_data_arrays.any?
       Rails.logger.info "Setting subsampled flags for #{study_file.upload_file_name}:#{study_file.id} (#{cluster_group.name}) for visualization"
       cluster_group.update(subsampled: true, is_subsampling: false)
+    end
+  end
+
+  # determine if differential expression should be run for study, and submit available jobs (skipping existing results)
+  def launch_differential_expression_jobs
+    if DifferentialExpressionService.study_eligible?(study, skip_existing: true)
+      Rails.logger.info "#{study.accession} is eligible for differential expression, launching available jobs"
+      DifferentialExpressionService.run_differential_expression_on_all(study.accession, skip_existing: true)
     end
   end
 

@@ -78,6 +78,7 @@ gem 'vite_rails'
 gem 'net-smtp'
 gem 'net-imap'
 gem 'net-pop'
+gem 'exponential-backoff'
 
 # only enable TCell in deployed environments due to Chrome sec-ch-ua header issue
 group :production, :staging do

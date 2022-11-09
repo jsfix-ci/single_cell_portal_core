@@ -5,14 +5,41 @@
 module ApiHelpers
   # max number of retries if should_retry? is true
   MAX_RETRY_COUNT = 5
-  # interval for retry backoff on request retries
-  RETRY_INTERVAL = Rails.env.test? ? 0 : 15
+
+  # minimum amount of time to wait between failed requests
+  MIN_INTERVAL = 5.0
+
+  # base maximum amount of time to wait between failed requests, not including multiplier & jitter
+  MAX_INTERVAL = 60.0
+
+  # multiplier for retry intervals
+  RETRY_MULTIPLIER = 1.75
+
+  # jitter for retry randomization
+  RETRY_JITTER = 0.125
 
   # known good HTTP status codes
   OK_STATUS_CODES = [200, 201, 202, 204, 206].freeze
 
   # 50x error codes that are acceptable to retry
   RETRY_STATUS_CODES = [502, 503, 504].freeze
+
+  # get a retry interval for failed request based on count of number of retries
+  #
+  # * *params*
+  #   - +count+ (Integer) => current retry count
+  #
+  # * *returns*
+  #   - (Float) => amount of time in seconds to wait for next retry
+  def retry_interval_for(count)
+    # short-circuit in test env to prevent tests from running long
+    return 0 if Rails.env.test?
+
+    backoff = ExponentialBackoff.new(MIN_INTERVAL, MAX_INTERVAL)
+    backoff.multiplier = RETRY_MULTIPLIER
+    backoff.randomize_factor = RETRY_JITTER
+    backoff.interval_at(count)
+  end
 
   # get default HTTP headers for making requests
   #
