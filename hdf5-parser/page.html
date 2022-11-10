@@ -1,0 +1,14 @@
+<html>
+  <head>
+    <!-- <script src="https://cdn.jsdelivr.net/npm/jsfive@0.3.13/dist/browser/hdf5.js"></script> -->
+    <script src="async-hdf5-parser.js" type="module"></script>
+  </head>
+  <body>
+    <span style="float:left">
+    Pick an HDF5 file
+    <input type="file" id="datafile" onchange="readHDF5()" style="display:inline"/>
+    Any pauses in this spinning image mean the UI is frozen.
+    </span>
+      <img src="dna-spinning.gif" style="float: left; display: inline;"/>
+  </body>
+</html>
