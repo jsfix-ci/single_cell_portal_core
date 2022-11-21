@@ -61,7 +61,7 @@ async function validateLocalFile(file, studyFile, allStudyFiles=[], allowedFileE
 
   let issuesObj
 
-  const noContentValidationFileTypes = ['Seurat', 'AnnData', 'Other', 'Documentation']
+  const noContentValidationFileTypes = ['Seurat', 'AnnData Reference', 'AnnData Ingestible', 'Other', 'Documentation']
 
   const studyFileType = studyFile.file_type
 

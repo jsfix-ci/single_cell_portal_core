@@ -462,7 +462,7 @@ export const ANNDATA_FILE = {
   created_at: '2021-11-15T18:31:41.598Z',
   data_dir: '71e1a89e5c5d9300aabd0e757d1b569eb66644872b40bcbb720e2b39bc7e3822',
   description: '',
-  file_type: 'H5ad',
+  file_type: 'AnnData Reference',
   human_data: false,
   is_spatial: false,
   name: 'anndata.h5ad',
