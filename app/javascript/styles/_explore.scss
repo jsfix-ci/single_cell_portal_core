@@ -84,7 +84,7 @@
 		border-radius: 5px;
 		margin-top: 4rem;
 		margin-bottom: -9rem;
-		
+
 	}
 	label {
 		font-weight: normal;
@@ -197,3 +197,15 @@
     display: inline-block;
   }
 }
+
+.de-modal-row-wrapper {
+	position: relative;
+	top: -15px;
+	.de-modal-row {
+		a.de-info-help-icon {
+			margin-left: 10px;
+			vertical-align: middle;
+		}
+	}
+}
+

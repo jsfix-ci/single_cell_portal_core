@@ -2,6 +2,7 @@
 import React, { useState } from 'react'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faArrowLeft, faInfoCircle } from '@fortawesome/free-solid-svg-icons'
+import DifferentialExpressionModal from '~/components/explore/DifferentialExpressionModal'
 
 import DifferentialExpressionGroupPicker from '~/components/visualization/controls/DifferentialExpressionGroupPicker'
 import { logSearchFromDifferentialExpression } from '~/lib/search-metrics'
@@ -75,17 +76,7 @@ export default function DifferentialExpressionPanel({
             data-original-title="Download all DE genes data for this group"
           >
             <FontAwesomeIcon icon={faDownload}/></a> */}
-          <a href="https://singlecell.zendesk.com/hc/en-us/articles/6059411840027"
-            target="_blank"
-            data-analytics-name="differential-expression-docs"
-            // style={{ 'marginLeft': '10px' }} // Dev placeholder for when download is enable
-            data-toggle="tooltip"
-            data-original-title="Learn about SCP DE genes analysis"
-          >
-            <FontAwesomeIcon
-              className="action help-icon" icon={faInfoCircle}
-            />
-          </a>
+          <DifferentialExpressionModal />
         </span>
         <table data-testid="differential-expression-table" className="table table-terra table-scp-compact">
           <thead>

@@ -34,6 +34,7 @@ import { getFeatureFlagsWithDefaults } from '~/providers/UserProvider'
 import DifferentialExpressionPanel, { DifferentialExpressionPanelHeader } from './DifferentialExpressionPanel'
 import OverlayTrigger from 'react-bootstrap/lib/OverlayTrigger'
 import Tooltip from 'react-bootstrap/lib/Tooltip'
+import DifferentialExpressionModal from '~/components/explore/DifferentialExpressionModal'
 
 const tabList = [
   { key: 'loading', label: 'loading...' },
@@ -516,14 +517,19 @@ export default function ExploreDisplayTabs({
                 }
                 {isDifferentialExpressionEnabled &&
                 <>
-                  <button
-                    className="btn btn-primary"
-                    onClick={() => {
-                      setShowDifferentialExpressionPanel(true)
-                      setShowDeGroupPicker(true)
-                    }}
-                  >Differential expression</button>
-                  <br/><br/>
+                  <div className="row de-modal-row-wrapper">
+                    <div className="col-xs-12 de-modal-row">
+                      <button
+                        className="btn btn-primary"
+                        onClick={() => {
+                          setShowDifferentialExpressionPanel(true)
+                          setShowDeGroupPicker(true)
+                        }}
+                      >Differential expression</button>
+                      <DifferentialExpressionModal />
+                    </div>
+
+                  </div>
                 </>
                 }
                 <SubsampleSelector

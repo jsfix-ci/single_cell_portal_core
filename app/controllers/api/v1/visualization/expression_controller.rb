@@ -169,7 +169,7 @@ module Api
           # render 422 if more than MAX_GENE_SEARCH as request fails internal validation
           num_genes = params[:genes].split(',').size
           if num_genes > StudySearchService::MAX_GENE_SEARCH
-            MetricsService.log('search-too-many-genes', { numGenes: num_genes }, current_api_user)
+            MetricsService.log('search-too-many-genes', { numGenes: num_genes }, current_api_user, request:)
             render json: { error: StudySearchService::MAX_GENE_SEARCH_MSG }, status: :unprocessable_entity
           end
         end

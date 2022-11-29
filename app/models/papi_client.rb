@@ -24,11 +24,13 @@ class PapiClient
     ingest_cell_metadata: ['Metadata'],
     ingest_subsample: ['Cluster'],
     differential_expression: ['Cluster'],
-    render_expression_arrays: ['Cluster']
+    render_expression_arrays: ['Cluster'],
+    image_pipeline: ['Cluster'],
+    ingest_anndata: ['AnnData']
   }.freeze
 
   # jobs that require custom virtual machine types (e.g. more RAM, CPU)
-  CUSTOM_VM_ACTIONS = %i[differential_expression render_expression_arrays].freeze
+  CUSTOM_VM_ACTIONS = %i[differential_expression render_expression_arrays image_pipeline].freeze
 
   # default GCE machine_type
   DEFAULT_MACHINE_TYPE = 'n1-highmem-4'.freeze
@@ -104,24 +106,26 @@ class PapiClient
   #   - (Google::Apis::AuthorizationError) => Authorization is required
   def run_pipeline(study_file:, user:, action:, params_object: nil)
     study = study_file.study
-
+    labels = job_labels(action:, study:, study_file:, user:, params_object:)
     # override default VM if required for this action
     if needs_custom_vm?(action)
-      labels = job_labels(
-        action: action, study: study, study_file: study_file, user: user, machine_type: params_object.machine_type
-      )
       custom_vm = create_virtual_machine_object(machine_type: params_object.machine_type, labels: labels)
       resources = create_resources_object(regions: ['us-central1'], vm: custom_vm)
     else
-      labels = job_labels(action:, study:, study_file:, user:)
       resources = create_resources_object(regions: ['us-central1'], labels: labels)
     end
 
     user_metrics_uuid = user.metrics_uuid
     command_line = get_command_line(study_file:, action:, user_metrics_uuid:, params_object:)
 
-    environment = set_environment_variables
-    action = create_actions_object(commands: command_line, environment: environment)
+    environment = set_environment_variables(action:)
+    if params_object.respond_to?(:docker_image) && params_object.docker_image
+      action = create_actions_object(
+        commands: command_line, environment: environment, image_uri: params_object.docker_image
+      )
+    else
+      action = create_actions_object(commands: command_line, environment: environment)
+    end
     pipeline = create_pipeline_object(actions: [action], environment: environment, resources: resources)
     pipeline_request = create_run_pipeline_request_object(pipeline:, labels:)
     Rails.logger.info "Request object sent to Google Pipelines API (PAPI), excluding 'environment' parameters:"
@@ -184,15 +188,16 @@ class PapiClient
   #   - +image_uri+: (String) => GCR Docker image to pull, defaults to AdminConfiguration.get_ingest_docker_image
   #   - +labels+: (Hash) => Hash of labels to associate with the action
   #   - +timeout+: (String) => Maximum runtime of action
+  #   - +image_uri+: (String) => Override for docker image URI
   #
   #  * *return*
   #   - (Google::Apis::GenomicsV2alpha1::Action)
-  def create_actions_object(commands: [], environment: {}, flags: [], labels: {}, timeout: nil)
+  def create_actions_object(commands: [], environment: {}, flags: [], labels: {}, timeout: nil, image_uri: nil)
     Google::Apis::GenomicsV2alpha1::Action.new(
       commands: commands,
       environment: environment,
       flags: flags,
-      image_uri: AdminConfiguration.get_ingest_docker_image,
+      image_uri: image_uri || AdminConfiguration.get_ingest_docker_image,
       labels: labels,
       timeout: timeout
     )
@@ -206,11 +211,15 @@ class PapiClient
   #   - +GOOGLE_PROJECT_ID+: Name of the GCP project this pipeline is running in
   #   - +SENTRY_DSN+: Sentry Data Source Name (DSN); URL to send Sentry logs to
   #   - +BARD_HOST_URL+: URL for Bard host that proxies Mixpanel
+  #   - +IS_PAPI+: Denotes Pipelines API run (for :image_pipeline)
+  #   - +NODE_TLS_REJECT_UNAUTHORIZED+: Configure node behavior for self-signed certificates (for :image_pipeline)
   #
+  # * *params*
+  #   - +action+ (Symbol) => ingest action being performed
   # * *returns*
   #   - (Hash) => Hash of required environment variables
-  def set_environment_variables
-    {
+  def set_environment_variables(action: nil)
+    vars = {
       'DATABASE_HOST' => ENV['MONGO_INTERNAL_IP'],
       'MONGODB_USERNAME' => 'single_cell',
       'MONGODB_PASSWORD' => ENV['PROD_DATABASE_PASSWORD'],
@@ -219,6 +228,11 @@ class PapiClient
       'SENTRY_DSN' => ENV['SENTRY_DSN'],
       'BARD_HOST_URL' => Rails.application.config.bard_host_url
     }
+    if action == :image_pipeline
+      vars.merge({ 'IS_PAPI' => '1', 'STAGING_INTERNAL_IP' => ENV['APP_INTERNAL_IP'] })
+    else
+      vars
+    end
   end
 
   # Instantiate a resources object to tell where to run a pipeline
@@ -306,11 +320,17 @@ class PapiClient
       end
     when 'ingest_cluster'
       command_line += " --cluster-file #{study_file.gs_url} --ingest-cluster"
+    when 'ingest_anndata'
+      # extract cluster data from AnnData file, currently hardcoding the obsm-keys
+      command_line +=  " --ingest-anndata --anndata-file #{study_file.gs_url} --extract-cluster --obsm-keys ['X_umap','X_tsne']"
     when 'ingest_subsample'
       metadata_file = study.metadata_file
       command_line += " --cluster-file #{study_file.gs_url} --cell-metadata-file #{metadata_file.gs_url} --subsample"
     when 'differential_expression'
       command_line += " --study-accession #{study.accession}"
+    when 'image_pipeline'
+      # image_pipeline is node-based, so python command line to this point no longer applies
+      command_line = 'node expression-scatter-plots.js'
     end
 
     # add optional command line arguments based on file type and action
@@ -367,19 +387,27 @@ class PapiClient
   #   - +study+ (Study) => parent study of file
   #   - +study_file+ (StudyFile) => File to be ingested/processed
   #   - +user+ (User) => user requesting action
-  #   - +machine_type+ (String) => GCE machine type
+  #   - +params_object+ (Multiple) => Job parameters object, e.g. ImagePipelineParameters
   #   - +boot_disk_size_gb+ (Integer) => size of boot disk, in GB
   #
   # * *returns*
   #   - (Hash)
-  def job_labels(action:, study:, study_file:, user:, machine_type: DEFAULT_MACHINE_TYPE, boot_disk_size_gb: 300)
-    ingest_version = AdminConfiguration.get_ingest_docker_image_attributes[:tag]
+  def job_labels(action:, study:, study_file:, user:, params_object:, boot_disk_size_gb: 300)
+    ingest_attributes = AdminConfiguration.get_ingest_docker_image_attributes
+    docker_image = ingest_attributes[:image_name]
+    docker_tag = ingest_attributes[:tag]
+    machine_type = params_object&.machine_type || DEFAULT_MACHINE_TYPE
+    if params_object && params_object.respond_to?(:docker_image)
+      image_attributes = params_object.docker_image.split('/').last
+      docker_image, docker_tag = image_attributes.split(':')
+    end
     {
       study_accession: sanitize_label(study.accession),
       user_id: user.id.to_s,
       filename: sanitize_label(study_file.upload_file_name),
       action: label_for_action(action),
-      docker_image: sanitize_label(ingest_version),
+      docker_image: sanitize_label(docker_image),
+      docker_tag: sanitize_label(docker_tag),
       environment: Rails.env.to_s,
       file_type: sanitize_label(study_file.file_type),
       machine_type: machine_type,

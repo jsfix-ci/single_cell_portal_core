@@ -119,6 +119,9 @@ class PapiClientTest < ActiveSupport::TestCase
     assert env_vars.keys.include? 'MONGODB_USERNAME'
     assert env_vars.keys.include? 'GOOGLE_PROJECT_ID'
     assert_equal @client.project, env_vars['GOOGLE_PROJECT_ID']
+    image_pipeline_vars = @client.set_environment_variables(action: :image_pipeline)
+    assert_equal '1', image_pipeline_vars['IS_PAPI']
+    assert_includes image_pipeline_vars.keys, 'STAGING_INTERNAL_IP'
   end
 
   test 'should create virtual machine config' do
@@ -216,7 +219,7 @@ class PapiClientTest < ActiveSupport::TestCase
     regions = %w[us-central1]
     labels = @client.job_labels(
       action: :differential_expression, study: @study, study_file: @cluster_file, user: @user,
-      machine_type: de_params.machine_type
+      params_object: de_params
     )
     machine_type = de_params.machine_type
     custom_vm = @client.create_virtual_machine_object(machine_type:, labels:)
@@ -237,14 +240,17 @@ class PapiClientTest < ActiveSupport::TestCase
   end
 
   test 'should set labels for job' do
-    labels = @client.job_labels(action: :ingest_cluster, study: @study, study_file: @cluster_file, user: @user)
+    labels = @client.job_labels(
+      action: :ingest_cluster, study: @study, study_file: @cluster_file, user: @user, params_object: nil
+    )
     ingest_tag = AdminConfiguration.get_ingest_docker_image_attributes[:tag].gsub(/\./, '_')
     expected_labels = {
       study_accession: @study.accession.downcase,
       user_id: @user.id.to_s,
       filename: 'cluster_txt',
       action: 'ingest_pipeline',
-      docker_image: ingest_tag,
+      docker_image: 'scp-ingest-pipeline',
+      docker_tag: ingest_tag,
       environment: 'test',
       file_type: 'cluster',
       machine_type: PapiClient::DEFAULT_MACHINE_TYPE,

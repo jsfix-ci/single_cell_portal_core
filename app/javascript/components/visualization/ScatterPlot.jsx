@@ -53,7 +53,7 @@ function RawScatterPlot({
   const [scatterData, setScatterData] = useState(null)
   // array of trace names (strings) to show in the graph
   const [graphElementId] = useState(_uniqueId('study-scatter-'))
-  const { ErrorComponent, setShowError, setErrorContent } = useErrorMessage()
+  const { ErrorComponent, setShowError, setError } = useErrorMessage()
   const [activeTraceLabel, setActiveTraceLabel] = useState(null)
   // map of label name to color hex codes, for any labels the user has picked a color for
   const [editedCustomColors, setEditedCustomColors] = useState({})
@@ -101,7 +101,6 @@ function RawScatterPlot({
 
   /** updates whether pipe-delimited label values should be split */
   function updateIsSplitLabelArrays(value) {
-    // console.log('split the array', value)
     updateExploreParams({ isSplitLabelArrays: value })
   }
 
@@ -379,10 +378,10 @@ function RawScatterPlot({
       genes,
       isAnnotatedScatter,
       isCorrelatedScatter
-    }).then(processScatterPlot).catch(err => {
+    }).then(processScatterPlot).catch(error => {
       setIsLoading(false)
-      setErrorContent([`${err}`])
       setShowError(true)
+      setError(error)
     })
   }, [cluster, annotation.name, subsample, consensus, genes.join(','), isAnnotatedScatter])
 

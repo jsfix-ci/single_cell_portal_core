@@ -13,6 +13,7 @@ class FileParseService
   def self.run_parse_job(study_file, study, user, reparse: false, persist_on_fail: false)
     logger = Rails.logger
     logger.info "#{Time.zone.now}: Parsing #{study_file.name} as #{study_file.file_type} in study #{study.name}"
+    do_anndata_file_ingest = FeatureFlaggable.feature_flags_for_instances(user, study)['ingest_anndata_file']
     if !study_file.parseable?
       return {
           status_code: 422,
@@ -97,8 +98,28 @@ class FileParseService
         else
           Rails.logger.info "Aborting parse of #{@study_file.name} as #{@study_file.file_type} in study #{@study.name}; not applicable"
         end
+      when 'AnnData'
+        # gate ingest of AnnData using the feature flag 'ingest_anndata_file'
+        if do_anndata_file_ingest == true
+          # Currently assuming "Happy Path" and so the AnnData file will have clustering data
+          # extract and parse clustering data
+          job = IngestJob.new(study: study, study_file: study_file, user: user, action: :ingest_anndata, reparse: reparse,
+          persist_on_fail: persist_on_fail)
+          job.delay.push_remote_and_launch_ingest
+
+          # Future consideration about whether to do all in one job likely in (SCP-4754)
+          # TODO extract and parse Metadata (SCP-4708)
+          # TODO extract and parse Processed Exp Data (SCP-4709)
+          # TODO extract and parse Raw Exp Data (SCP-4710)
+        else
+          Rails.logger.info "Aborting parse of AnnData file #{study_file.name} due to feature flag being #{do_anndata_file_ingest}"
+        end
+
       end
-      study_file.update(parse_status: 'parsing')
+      # If the AnnData ingest feature flag is false don't update the parse status since no ingest job was initiated
+      unless study_file.file_type == 'AnnData' && !do_anndata_file_ingest
+        study_file.update(parse_status: 'parsing')
+      end
       changes = ["Study file added: #{study_file.upload_file_name}"]
       if study.study_shares.any?
         SingleCellMailer.share_update_notification(study, changes, user).deliver_now

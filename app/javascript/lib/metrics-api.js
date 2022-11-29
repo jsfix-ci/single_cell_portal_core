@@ -322,11 +322,13 @@ export function logMenuChange(event) {
 }
 
 /**
- * Log front-end error (e.g. uncaught ReferenceError) to both Sentry and Mixpanel
+ * Log JS error (e.g. uncaught ReferenceError) to console, Sentry, and Mixpanel
  */
 export function logError(text, error = {}) {
+  console.error(error.message)
+
   const props = { text, error }
-  log('error', props)
+  log('error', props) // Log to Mixpanel
 
   logToSentry(error)
 }
