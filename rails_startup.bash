@@ -24,7 +24,9 @@ if [[ $PASSENGER_APP_ENV = "production" ]] || [[ $PASSENGER_APP_ENV = "staging" 
 then
     echo "*** PRECOMPILING ASSETS ***"
     export NODE_OPTIONS="--max-old-space-size=4096"
+    # ensure file permissions don't interfere with compiling assets
     sudo chown app:app ./node_modules/.yarn-integrity
+    sudo chown -R app:app /home/app/webapp/tmp/cache
     sudo -E -u app -H bin/rails NODE_ENV=production RAILS_ENV=$PASSENGER_APP_ENV assets:clobber
     sudo -E -u app -H bin/rails NODE_ENV=production RAILS_ENV=$PASSENGER_APP_ENV vite:clobber
     sudo -E -u app -H bin/rails NODE_ENV=production RAILS_ENV=$PASSENGER_APP_ENV assets:precompile

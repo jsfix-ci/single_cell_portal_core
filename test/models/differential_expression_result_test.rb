@@ -127,6 +127,7 @@ class DifferentialExpressionResultTest  < ActiveSupport::TestCase
     assert_equal @raw_matrix, @species_result.matrix_file
     assert_equal @metadata_file, @species_result.annotation_file
     assert_equal @cluster_file, @species_result.cluster_file
+    assert_equal @raw_matrix.upload_file_name, @species_result.matrix_file_name
   end
 
   test 'should clean up files on destroy' do

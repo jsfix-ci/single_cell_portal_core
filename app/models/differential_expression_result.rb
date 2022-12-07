@@ -61,6 +61,11 @@ class DifferentialExpressionResult
     StudyFile.find(matrix_file_id)
   end
 
+  # name of associated matrix file
+  def matrix_file_name
+    matrix_file.upload_file_name
+  end
+
   # associated clustering file
   def cluster_file
     cluster_group.study_file

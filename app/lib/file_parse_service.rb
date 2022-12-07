@@ -28,8 +28,7 @@ class FileParseService
       self.create_bundle_from_file_options(study_file, study)
       case study_file.file_type
       when 'Cluster'
-        job = IngestJob.new(study: study, study_file: study_file, user: user, action: :ingest_cluster, reparse: reparse,
-                            persist_on_fail: persist_on_fail)
+        job = IngestJob.new(study:, study_file:, user:, action: :ingest_cluster, reparse:, persist_on_fail:)
         job.delay.push_remote_and_launch_ingest
         # check if there is a coordinate label file waiting to be parsed
         # must reload study_file object as associations have possibly been updated
@@ -38,25 +37,23 @@ class FileParseService
           study_file.bundled_files.each do |coordinate_file|
             # pre-emptively set parse_status to prevent initialize_coordinate_label_data_arrays from failing due to race condition
             study_file.update(parse_status: 'parsing')
-            study.delay.initialize_coordinate_label_data_arrays(coordinate_file, user, {reparse: reparse})
+            study.delay.initialize_coordinate_label_data_arrays(coordinate_file, user, { reparse: })
           end
         end
       when 'Coordinate Labels'
         if study_file.has_completed_bundle?
-          ParseUtils.delay.initialize_coordinate_label_data_arrays(study, study_file, user, {reparse: reparse})
+          ParseUtils.delay.initialize_coordinate_label_data_arrays(study, study_file, user, { reparse: })
         else
           return self.missing_bundled_file(study_file)
         end
       when 'Expression Matrix'
-        job = IngestJob.new(study: study, study_file: study_file, user: user, action: :ingest_expression, reparse: reparse,
-                            persist_on_fail: persist_on_fail)
+        job = IngestJob.new(study:, study_file:, user:, action: :ingest_expression, reparse:, persist_on_fail:)
         job.delay.push_remote_and_launch_ingest
       when 'MM Coordinate Matrix'
         study_file.reload
         if study_file.has_completed_bundle?
           study_file.bundled_files.update_all(parse_status: 'parsing')
-          job = IngestJob.new(study: study, study_file: study_file, user: user, action: :ingest_expression, reparse: reparse,
-                              persist_on_fail: persist_on_fail)
+          job = IngestJob.new(study:, study_file:, user:, action: :ingest_expression, reparse:, persist_on_fail:)
           job.delay.push_remote_and_launch_ingest
         else
           study.delay.send_to_firecloud(study_file) if study_file.is_local?
@@ -70,8 +67,7 @@ class FileParseService
           bundle = study_file.study_file_bundle
           matrix = bundle.parent
           bundle.study_files.update_all(parse_status: 'parsing')
-          job = IngestJob.new(study: study, study_file: matrix, user: user, action: :ingest_expression, reparse: reparse,
-                              persist_on_fail: persist_on_fail)
+          job = IngestJob.new(study:, study_file: matrix, user:, action: :ingest_expression, reparse:, persist_on_fail:)
           job.delay.push_remote_and_launch_ingest
         else
           return self.missing_bundled_file(study_file)
@@ -86,8 +82,7 @@ class FileParseService
             studyFileName: study_file.name
           }, user)
         end
-        job = IngestJob.new(study: study, study_file: study_file, user: user, action: :ingest_cell_metadata, reparse: reparse,
-                            persist_on_fail: persist_on_fail)
+        job = IngestJob.new(study:, study_file:, user:, action: :ingest_cell_metadata, reparse:, persist_on_fail:)
         job.delay.push_remote_and_launch_ingest
       when 'Analysis Output'
         case @study_file.options[:analysis_name]
@@ -99,27 +94,23 @@ class FileParseService
           Rails.logger.info "Aborting parse of #{@study_file.name} as #{@study_file.file_type} in study #{@study.name}; not applicable"
         end
       when 'AnnData'
-        # gate ingest of AnnData using the feature flag 'ingest_anndata_file'
-        if do_anndata_file_ingest == true
+        # enable / disable full ingest of AnnData files using the feature flag 'ingest_anndata_file'
+        if do_anndata_file_ingest
           # Currently assuming "Happy Path" and so the AnnData file will have clustering data
           # extract and parse clustering data
-          job = IngestJob.new(study: study, study_file: study_file, user: user, action: :ingest_anndata, reparse: reparse,
-          persist_on_fail: persist_on_fail)
-          job.delay.push_remote_and_launch_ingest
-
+          job = IngestJob.new(study:, study_file:, user:, action: :ingest_anndata, reparse:, persist_on_fail:)
           # Future consideration about whether to do all in one job likely in (SCP-4754)
           # TODO extract and parse Metadata (SCP-4708)
           # TODO extract and parse Processed Exp Data (SCP-4709)
           # TODO extract and parse Raw Exp Data (SCP-4710)
         else
-          Rails.logger.info "Aborting parse of AnnData file #{study_file.name} due to feature flag being #{do_anndata_file_ingest}"
+          # launch an ingest job for parsing a reference AnnData file
+          job = IngestJob.new(study:, study_file:, user:, action: :ingest_anndata_reference, reparse:, persist_on_fail:)
         end
+        job.delay.push_remote_and_launch_ingest
+      end
 
-      end
-      # If the AnnData ingest feature flag is false don't update the parse status since no ingest job was initiated
-      unless study_file.file_type == 'AnnData' && !do_anndata_file_ingest
-        study_file.update(parse_status: 'parsing')
-      end
+      study_file.update(parse_status: 'parsing')
       changes = ["Study file added: #{study_file.upload_file_name}"]
       if study.study_shares.any?
         SingleCellMailer.share_update_notification(study, changes, user).deliver_now

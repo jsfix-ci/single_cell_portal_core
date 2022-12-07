@@ -214,7 +214,8 @@ class FireCloudClient
     Rails.logger.info "FireCloud API request (#{http_method.to_s.upcase}) #{path} with tracking identifier: #{self.tracking_identifier}"
 
     # set default headers, appending application identifier including hostname for disambiguation
-    headers = get_default_headers
+    # allow for override of default application/json content_type and accept headers
+    headers = get_default_headers(content_type: opts[:content_type])
 
     # if uploading a file, remove Content-Type/Accept headers to use default x-www-form-urlencoded type on POSTs
     if request_opts[:file_upload]
@@ -379,7 +380,8 @@ class FireCloudClient
   #   - +Hash+ message of status of workspace deletion
   def delete_workspace(workspace_namespace, workspace_name)
     path = self.api_root + "/api/workspaces/#{uri_encode(workspace_namespace)}/#{uri_encode(workspace_name)}"
-    process_firecloud_request(:delete, path)
+    # delete workspace endpoint throws 406 with JSON content_type, set to text/plain
+    process_firecloud_request(:delete, path, nil, { content_type: 'text/plain' })
   end
 
   # get the specified workspace ACL

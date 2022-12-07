@@ -43,13 +43,16 @@ module ApiHelpers
 
   # get default HTTP headers for making requests
   #
+  # * *params*
+  #   - +content_type+ => Request Content-Type & Accept header value (defaults to application/json if not specified)
+  #
   # * *returns*
   #   - (Hash) => Hash of default HTTP headers, e.g. Authorization, Content-Type
-  def get_default_headers
+  def get_default_headers(content_type: nil)
     {
       'Authorization' => "Bearer #{self.valid_access_token['access_token']}",
-      'Accept' => 'application/json',
-      'Content-Type' => 'application/json',
+      'Accept' => content_type || 'application/json',
+      'Content-Type' => content_type || 'application/json',
       'x-app-id' => 'single-cell-portal',
       'x-domain-id' => "#{ENV['HOSTNAME']}"
     }

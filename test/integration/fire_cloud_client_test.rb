@@ -86,6 +86,17 @@ class FireCloudClientTest < ActiveSupport::TestCase
     end
   end
 
+  # test header overrides
+  def test_override_default_headers
+    headers = %w[Accept Content-Type]
+    default_headers = @fire_cloud_client.get_default_headers
+    override_headers = @fire_cloud_client.get_default_headers(content_type: 'text/plain')
+    headers.each do |header|
+      assert_equal 'application/json', default_headers[header]
+      assert_equal 'text/plain', override_headers[header]
+    end
+  end
+
   ##
   #
   # WORKSPACE TESTS
